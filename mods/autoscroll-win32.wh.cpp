@@ -15,6 +15,11 @@
 
 // ==WindhawkModReadme==
 /*
+
+![Preview](https://raw.githubusercontent.com/crazyboyybs/assets/refs/heads/main/auto%20scroll%20preview.gif)
+
+---
+
 ## AutoScroll Win32
 
 Simulates browser-style autoscroll (middle mouse button) in Win32 applications
@@ -36,8 +41,8 @@ exactly like real mouse-wheel events.
 ### Adding more applications
 
 By default the mod targets only explorer.exe. To enable it in other
-applications, add their executable names in the Windhawk mod settings for
-this mod under "Include processes".
+applications, add their executable names in the **Advanced** tab of the mod
+settings in Windhawk under "Include processes".
 
 ---
 
@@ -63,8 +68,8 @@ eventos reais da roda do mouse.
 ### Adicionar mais aplicativos
 
 Por padrao, o mod afeta apenas o explorer.exe. Para ativa-lo em outros
-aplicativos, adicione os nomes dos executaveis nas configuracoes do mod no
-Windhawk em "Include processes".
+aplicativos, adicione os nomes dos executaveis na aba **Advanced** das
+configuraces do mod no Windhawk em "Include processes".
 
 ---
 
@@ -91,47 +96,47 @@ eventos reales de la rueda del raton.
 ### Agregar mas aplicaciones
 
 De forma predeterminada, el mod solo afecta a explorer.exe. Para habilitarlo
-en otras aplicaciones, agrega los nombres de los ejecutables en la
-configuracion del mod en Windhawk bajo "Include processes".
+en otras aplicaciones, agrega los nombres de los ejecutables en la pestana **Advanced**
+de la configuracion del mod en Windhawk bajo "Include processes".
 */
 // ==/WindhawkModReadme==
 
 // ==WindhawkModSettings==
 /*
 - deadzone: 8
-  $name: Zona Morta (px)
-  $name:en: Dead Zone (px)
+  $name: Dead Zone (px)
+  $name:pt: Zona Morta (px)
   $name:es: Zona Muerta (px)
-  $description: Distancia em pixels a partir do ponto de origem dentro da qual a rolagem nao ocorre.
-  $description:en: Distance in pixels from the origin point within which no scrolling occurs.
+  $description: Distance in pixels from the origin point within which no scrolling occurs.
+  $description:pt: Distancia em pixels a partir do ponto de origem dentro da qual a rolagem nao ocorre.
   $description:es: Distancia en pixeles desde el origen dentro de la cual no ocurre desplazamiento.
 - speed: 150
-  $name: Distancia de Velocidade Maxima (px)
-  $name:en: Max Speed Distance (px)
+  $name: Max Speed Distance (px)
+  $name:pt: Distancia de Velocidade Maxima (px)
   $name:es: Distancia de Velocidad Maxima (px)
-  $description: Distancia em pixels para atingir a velocidade maxima de rolagem.
-  $description:en: Pixel distance from the origin at which maximum scroll speed is reached.
+  $description: Pixel distance from the origin at which maximum scroll speed is reached.
+  $description:pt: Distancia em pixels para atingir a velocidade maxima de rolagem.
   $description:es: Distancia en pixeles desde el origen para alcanzar la velocidad maxima.
 - horizontal: true
-  $name: Rolagem Horizontal
-  $name:en: Horizontal Scroll
+  $name: Horizontal Scroll
+  $name:pt: Rolagem Horizontal
   $name:es: Desplazamiento Horizontal
-  $description: Ativa rolagem horizontal ao mover o cursor para os lados.
-  $description:en: Enables horizontal scrolling when the cursor is moved sideways.
+  $description: Enables horizontal scrolling when the cursor is moved sideways.
+  $description:pt: Ativa rolagem horizontal ao mover o cursor para os lados.
   $description:es: Activa el desplazamiento horizontal al mover el cursor hacia los lados.
 - speedMult: 30
-  $name: Velocidade Maxima
-  $name:en: Max Speed
+  $name: Max Speed
+  $name:pt: Velocidade Maxima
   $name:es: Velocidad Maxima
-  $description: Velocidade maxima em decimos de entalhe por quadro (30 = 3,0 entalhes/quadro).
-  $description:en: Maximum speed in tenths of a wheel notch per frame (30 = 3.0 notches/frame).
+  $description: Maximum speed in tenths of a wheel notch per frame (30 = 3.0 notches/frame).
+  $description:pt: Velocidade maxima em decimos de entalhe por quadro (30 = 3,0 entalhes/quadro).
   $description:es: Velocidad maxima en decimas de muesca por fotograma (30 = 3,0 muescas/fotograma).
 - showIndicator: true
-  $name: Mostrar Indicador Visual
-  $name:en: Show Visual Indicator
+  $name: Show Visual Indicator
+  $name:pt: Mostrar Indicador Visual
   $name:es: Mostrar Indicador Visual
-  $description: Mostra o circulo de indicador de rolagem na origem da rolagem.
-  $description:en: Shows the autoscroll indicator circle at the scroll origin.
+  $description: Shows the autoscroll indicator circle at the scroll origin.
+  $description:pt: Mostra o circulo de indicador de rolagem na origem da rolagem.
   $description:es: Muestra el circulo indicador de desplazamiento en el origen del gesto.
 */
 // ==/WindhawkModSettings==
@@ -175,6 +180,10 @@ static std::thread       g_scrollThread;
 static std::atomic<HWND> g_indicatorHwnd{nullptr};
 static std::thread       g_indicatorThread;
 
+// Event signaled by StartAutoscroll to wake the scroll thread from idle.
+// Auto-reset: consumed by WaitForSingleObject automatically.
+static HANDLE g_scrollEvent = nullptr;
+
 // Set before posting WM_IND_UPDATE; cleared by the handler.
 // Prevents the scroll thread from flooding the indicator queue, which would
 // delay WM_IND_SHOW/HIDE. Uses relaxed ordering: a missed update just means
@@ -189,78 +198,80 @@ static std::atomic<DWORD> g_frameMs{16};
 // Scroll thread
 // ===========================================================================
 static void ScrollThreadProc() {
+    // Outer loop: sleep until a gesture starts or the mod is unloading.
     while (g_threadRunning.load(std::memory_order_relaxed)) {
+        WaitForSingleObject(g_scrollEvent, INFINITE);
+        if (!g_threadRunning.load(std::memory_order_relaxed)) break;
 
-        HWND hwnd = g_targetHwnd.load(std::memory_order_acquire);
-        if (!hwnd) {
-            Sleep(10);
-            continue;
-        }
+        // Inner loop: active while a gesture is ongoing.
+        while (g_threadRunning.load(std::memory_order_relaxed)) {
+            HWND hwnd = g_targetHwnd.load(std::memory_order_acquire);
+            if (!hwnd) break;  // gesture ended
 
-        if (!IsWindow(hwnd)) {
-            HWND expected = hwnd;
-            g_targetHwnd.compare_exchange_strong(
-                expected, nullptr,
-                std::memory_order_release,
-                std::memory_order_relaxed);
-            Sleep(10);
-            continue;
-        }
+            if (!IsWindow(hwnd)) {
+                HWND expected = hwnd;
+                g_targetHwnd.compare_exchange_strong(
+                    expected, nullptr,
+                    std::memory_order_release,
+                    std::memory_order_relaxed);
+                break;
+            }
 
-        DWORD frameMs = g_frameMs.load(std::memory_order_relaxed);
+            DWORD frameMs = g_frameMs.load(std::memory_order_relaxed);
 
-        POINT cursor{};
-        GetCursorPos(&cursor);
+            POINT cursor{};
+            GetCursorPos(&cursor);
 
-        int dy = cursor.y - g_originY.load(std::memory_order_relaxed);
-        int dx = cursor.x - g_originX.load(std::memory_order_relaxed);
+            int dy = cursor.y - g_originY.load(std::memory_order_relaxed);
+            int dx = cursor.x - g_originX.load(std::memory_order_relaxed);
 
-        int deadzone   = g_deadzonePx.load(std::memory_order_relaxed);
-        int speedRange = std::max(1,
-            g_speedPx.load(std::memory_order_relaxed) - deadzone);
-        float maxNotches = g_speedMult.load(std::memory_order_relaxed) / 10.0f;
+            int   deadzone   = g_deadzonePx.load(std::memory_order_relaxed);
+            int   speedRange = std::max(1,
+                g_speedPx.load(std::memory_order_relaxed) - deadzone);
+            float maxNotches = g_speedMult.load(std::memory_order_relaxed) / 10.0f;
 
-        // Vertical scroll
-        {
-            int absDy = std::abs(dy);
-            if (absDy > deadzone) {
-                float t     = std::min(1.0f, (float)(absDy - deadzone) / speedRange);
-                int   delta = (int)(t * t * t * maxNotches * WHEEL_DELTA);
-                if (delta > 0) {
-                    if (dy > 0) delta = -delta;
-                    PostMessageW(hwnd, WM_MOUSEWHEEL,
-                        MAKEWPARAM(0, (SHORT)delta),
-                        MAKELPARAM(cursor.x, cursor.y));
+            // Vertical scroll
+            {
+                int absDy = std::abs(dy);
+                if (absDy > deadzone) {
+                    float t     = std::min(1.0f, (float)(absDy - deadzone) / speedRange);
+                    int   delta = (int)(t * t * t * maxNotches * WHEEL_DELTA);
+                    if (delta > 0) {
+                        if (dy > 0) delta = -delta;
+                        PostMessageW(hwnd, WM_MOUSEWHEEL,
+                            MAKEWPARAM(0, (SHORT)delta),
+                            MAKELPARAM(cursor.x, cursor.y));
+                    }
                 }
             }
-        }
 
-        // Horizontal scroll
-        if (g_horzEnabled.load(std::memory_order_relaxed)) {
-            int absDx = std::abs(dx);
-            if (absDx > deadzone) {
-                float t     = std::min(1.0f, (float)(absDx - deadzone) / speedRange);
-                int   delta = (int)(t * t * t * maxNotches * WHEEL_DELTA);
-                if (delta > 0) {
-                    if (dx > 0) delta = -delta;
-                    PostMessageW(hwnd, WM_MOUSEHWHEEL,
-                        MAKEWPARAM(0, (SHORT)delta),
-                        MAKELPARAM(cursor.x, cursor.y));
+            // Horizontal scroll
+            if (g_horzEnabled.load(std::memory_order_relaxed)) {
+                int absDx = std::abs(dx);
+                if (absDx > deadzone) {
+                    float t     = std::min(1.0f, (float)(absDx - deadzone) / speedRange);
+                    int   delta = (int)(t * t * t * maxNotches * WHEEL_DELTA);
+                    if (delta > 0) {
+                        if (dx > 0) delta = -delta;
+                        PostMessageW(hwnd, WM_MOUSEHWHEEL,
+                            MAKEWPARAM(0, (SHORT)delta),
+                            MAKELPARAM(cursor.x, cursor.y));
+                    }
                 }
             }
-        }
 
-        // Wake indicator to refresh arrow directions.
-        // Only post if no WM_IND_UPDATE is already queued (atomic flag),
-        // so the indicator queue never accumulates and WM_IND_SHOW/HIDE
-        // are always processed promptly.
-        HWND ind = g_indicatorHwnd.load(std::memory_order_relaxed);
-        if (ind && !g_indUpdatePending.exchange(true, std::memory_order_relaxed)) {
-            PostMessageW(ind, WM_IND_UPDATE, 0, 0);
-        }
+            // Wake indicator to refresh arrow directions.
+            // Only post if no WM_IND_UPDATE is already queued (atomic flag),
+            // so the indicator queue never accumulates and WM_IND_SHOW/HIDE
+            // are always processed promptly.
+            HWND ind = g_indicatorHwnd.load(std::memory_order_relaxed);
+            if (ind && !g_indUpdatePending.exchange(true, std::memory_order_relaxed)) {
+                PostMessageW(ind, WM_IND_UPDATE, 0, 0);
+            }
 
-        Sleep(frameMs);
-    }
+            Sleep(frameMs);
+        }  // inner loop
+    }  // outer loop
 }
 
 // ===========================================================================
@@ -286,6 +297,7 @@ static void StartAutoscroll(HWND hwnd, POINT screenOrigin) {
     g_originX.store(screenOrigin.x, std::memory_order_relaxed);
     g_originY.store(screenOrigin.y, std::memory_order_relaxed);
     g_targetHwnd.store(hwnd, std::memory_order_release);
+    if (g_scrollEvent) SetEvent(g_scrollEvent);  // wake scroll thread
     HWND ind = g_indicatorHwnd.load(std::memory_order_acquire);
     if (ind) PostMessageW(ind, WM_IND_SHOW, 0, 0);
 }
@@ -359,33 +371,16 @@ static bool HandleMsg(const MSG* pMsg) {
 // DispatchMessage (rare but valid Win32 pattern).
 // We nullify consumed messages so the paired DispatchMessage hook is a no-op.
 // ===========================================================================
-using GetMessageW_t = BOOL(WINAPI*)(LPMSG, HWND, UINT, UINT);
-static GetMessageW_t g_origGetMessageW = nullptr;
-
-BOOL WINAPI GetMessageW_Hook(LPMSG lpMsg, HWND hWnd, UINT wMin, UINT wMax) {
-    BOOL ret = g_origGetMessageW(lpMsg, hWnd, wMin, wMax);
-    // ret > 0: normal message; ret == 0: WM_QUIT; ret == -1: error.
-    // Only process normal messages.
-    if (ret > 0 && lpMsg && HandleMsg(lpMsg))
-        lpMsg->message = WM_NULL;
-    return ret;
-}
-
-using GetMessageA_t = BOOL(WINAPI*)(LPMSG, HWND, UINT, UINT);
-static GetMessageA_t g_origGetMessageA = nullptr;
-
-BOOL WINAPI GetMessageA_Hook(LPMSG lpMsg, HWND hWnd, UINT wMin, UINT wMax) {
-    BOOL ret = g_origGetMessageA(lpMsg, hWnd, wMin, wMax);
-    if (ret > 0 && lpMsg && HandleMsg(lpMsg))
-        lpMsg->message = WM_NULL;
-    return ret;
-}
-
 // ===========================================================================
 // PeekMessageW / PeekMessageA hooks
 //
-// Covers apps that use a PeekMessage-driven loop (e.g. game-style loops,
-// DirectX apps, some WPF/WinForms hosts).
+// Covers PeekMessage-driven loops (game-style, DirectX, WPF/WinForms hosts).
+// GetMessageW/A is intentionally NOT hooked: it is a blocking call, so any
+// thread suspended inside our hook cannot exit during mod unload, causing
+// explorer.exe to show a persistent unloading state in Windhawk.
+// Standard GetMessage loops are still covered because every message removed
+// from the queue via GetMessage is subsequently dispatched via DispatchMessage,
+// which is hooked below.
 // Only act when PM_REMOVE is set -- PM_NOREMOVE is a non-destructive peek
 // and the message will be seen again.
 // ===========================================================================
@@ -414,12 +409,14 @@ BOOL WINAPI PeekMessageA_Hook(
 }
 
 // ===========================================================================
-// DispatchMessageW / DispatchMessageA hooks  (belt-and-suspenders)
+// DispatchMessageW / DispatchMessageA hooks
 //
-// Catches apps that bypass Get/Peek (e.g. directly call DispatchMessage with
-// a synthesized MSG, or pump messages through a sub-dispatcher).
-// Consumed messages arrive here as WM_NULL (nullified above) so HandleMsg
-// returns false immediately -- no double-processing.
+// Primary interception point for standard GetMessage-based loops:
+// GetMessage is not hooked (it blocks, causing persistent unload state in
+// Windhawk when targeting explorer.exe), so WM_MBUTTONDOWN is caught here
+// after the app dequeues it. Also catches PeekMessage loops where the
+// PeekMessage hook has already nullified the message to WM_NULL, in which
+// case HandleMsg returns false immediately -- no double-processing.
 // ===========================================================================
 using DispatchMessageW_t = LRESULT(WINAPI*)(const MSG*);
 static DispatchMessageW_t g_origDispatchMessageW = nullptr;
@@ -509,10 +506,13 @@ struct IndicatorResources {
         if (pArrowStroke)  { pArrowStroke->Release();  pArrowStroke = nullptr; }
         if (pRT)           { pRT->Release();           pRT          = nullptr; }
         if (pFactory)      { pFactory->Release();      pFactory     = nullptr; }
-        if (hBitmapBase)   { DeleteObject(hBitmapBase); hBitmapBase = nullptr; }
+        // Delete DCs before bitmaps: a bitmap selected into a DC cannot
+        // be deleted (GDI silently returns FALSE and leaks it). Deleting
+        // the DC first automatically deselects the bitmap.
         if (hdcBase)       { DeleteDC(hdcBase);         hdcBase     = nullptr; }
-        if (hBitmap)       { DeleteObject(hBitmap);     hBitmap     = nullptr; }
+        if (hBitmapBase)   { DeleteObject(hBitmapBase); hBitmapBase = nullptr; }
         if (hdcMem)        { DeleteDC(hdcMem);          hdcMem      = nullptr; }
+        if (hBitmap)       { DeleteObject(hBitmap);     hBitmap     = nullptr; }
         pvBits = pvBase = nullptr;
     }
 };
@@ -538,8 +538,8 @@ static HRESULT MakeChevron(
     return S_OK;
 }
 
-static HRESULT InitIndicatorResources(IndicatorResources& res) {
-    UINT dpi = GetDpiForSystem();
+static HRESULT InitIndicatorResources(IndicatorResources& res, UINT dpi) {
+    if (dpi == 0) dpi = GetDpiForSystem();
     if (dpi == 0) dpi = 96;
     int sz       = MulDiv(44, (int)dpi, 96);
     res.sizePhys = sz;
@@ -762,6 +762,7 @@ static bool PresentIndicator(HWND hwnd, IndicatorResources& res) {
 // ---------------------------------------------------------------------------
 struct IndicatorState {
     IndicatorResources res;
+    UINT               currentDpi   = 0;
     bool               darkMode     = false;
     int                lastDirs     = -1;  // last rendered activeDirs; -1 forces first render
 };
@@ -782,13 +783,38 @@ static LRESULT CALLBACK IndicatorWndProc(
             GetWindowLongPtrW(hwnd, GWLP_USERDATA));
         if (!st) break;
 
+        // Per-monitor DPI: detect DPI of the window that received the gesture.
+        {
+            HWND target = g_targetHwnd.load(std::memory_order_relaxed);
+            UINT newDpi = target ? GetDpiForWindow(target) : GetDpiForSystem();
+            if (newDpi == 0) newDpi = 96;
+            if (newDpi != st->currentDpi) {
+                st->res.Release();
+                if (SUCCEEDED(InitIndicatorResources(st->res, newDpi))) {
+                    st->currentDpi = newDpi;
+                    // Resize window to new physical size.
+                    SetWindowPos(hwnd, nullptr, 0, 0,
+                        st->res.sizePhys, st->res.sizePhys,
+                        SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+                } else {
+                    Wh_Log(L"autoscroll indicator: DPI resource recreation failed");
+                    break;
+                }
+                // Force brush and base layer recreation: clear pBgBrush so
+                // the dm != st->darkMode || !pBgBrush check below triggers.
+                st->res.ReleaseBrushes();
+            }
+        }
+
         bool dm = ReadDarkMode();
         if (dm != st->darkMode || !st->res.pBgBrush) {
             st->darkMode = dm;
-            CreateBrushes(st->res, dm);
+            if (FAILED(CreateBrushes(st->res, dm))) {
+                Wh_Log(L"autoscroll indicator: CreateBrushes failed");
+                break;
+            }
             RenderBaseLayer(st->res, dm);
         } else if (!st->res.pvBase) {
-            // pvBase might be missing if brushes existed but base was never rendered
             RenderBaseLayer(st->res, st->darkMode);
         }
 
@@ -854,41 +880,62 @@ static LRESULT CALLBACK IndicatorWndProc(
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
+// Returns the handle of the mod's own DLL (used for window class
+// registration so the lpfnWndProc is tied to the correct module).
+static HMODULE GetCurrentModuleHandle() {
+    HMODULE mod = nullptr;
+    GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        L"", &mod);
+    return mod;
+}
+
 static void IndicatorThreadProc() {
     static const wchar_t kClass[] = L"WH_AutoscrollIndicator";
+
+    HMODULE hMod = GetCurrentModuleHandle();
+    if (!hMod) {
+        Wh_Log(L"autoscroll indicator: GetCurrentModuleHandle failed");
+        return;
+    }
 
     WNDCLASSEXW wc{};
     wc.cbSize        = sizeof(wc);
     wc.lpfnWndProc   = IndicatorWndProc;
-    wc.hInstance     = GetModuleHandleW(nullptr);
+    wc.hInstance     = hMod;
     wc.lpszClassName = kClass;
-    if (!RegisterClassExW(&wc)
-        && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
-        Wh_Log(L"autoscroll indicator: RegisterClassExW failed");
+    // Do NOT fall back on ERROR_CLASS_ALREADY_EXISTS: a class with the
+    // same name from a previously freed mod instance would have a stale
+    // lpfnWndProc pointing to unmapped memory, causing crashes.
+    if (!RegisterClassExW(&wc)) {
+        Wh_Log(L"autoscroll indicator: RegisterClassExW failed (%lu)", GetLastError());
         return;
     }
 
     IndicatorState state;
 
-    HRESULT hr = InitIndicatorResources(state.res);
+    HRESULT hr = InitIndicatorResources(state.res, GetDpiForSystem());
     if (FAILED(hr)) {
         Wh_Log(L"autoscroll indicator: InitIndicatorResources failed (0x%08X)", hr);
-        state.res.Release();  // free any partially-created resources
-        UnregisterClassW(kClass, GetModuleHandleW(nullptr));
+        state.res.Release();
+        UnregisterClassW(kClass, hMod);
         return;
     }
+    state.currentDpi = state.res.sizePhys > 0
+        ? (UINT)MulDiv(state.res.sizePhys, 96, 44) : GetDpiForSystem();
 
     HWND hwnd = CreateWindowExW(
         WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TRANSPARENT |
         WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
         kClass, nullptr, WS_POPUP,
         0, 0, state.res.sizePhys, state.res.sizePhys,
-        nullptr, nullptr, GetModuleHandleW(nullptr), &state);
+        nullptr, nullptr, hMod, &state);
 
     if (!hwnd) {
-        Wh_Log(L"autoscroll indicator: CreateWindowExW failed");
+        Wh_Log(L"autoscroll indicator: CreateWindowExW failed (%lu)", GetLastError());
         state.res.Release();
-        UnregisterClassW(kClass, GetModuleHandleW(nullptr));
+        UnregisterClassW(kClass, hMod);
         return;
     }
 
@@ -902,7 +949,7 @@ static void IndicatorThreadProc() {
 
     g_indicatorHwnd.store(nullptr, std::memory_order_release);
     state.res.Release();
-    UnregisterClassW(kClass, GetModuleHandleW(nullptr));
+    UnregisterClassW(kClass, hMod);
 }
 
 // ===========================================================================
@@ -942,22 +989,16 @@ static bool HookFn(void* target, void* hook, void** orig,
 BOOL Wh_ModInit() {
     LoadSettings();
 
-    // GetMessage hooks (primary, most robust)
-    if (!HookFn((void*)GetMessageW, (void*)GetMessageW_Hook,
-                (void**)&g_origGetMessageW, L"GetMessageW", true))
-        return FALSE;
-    HookFn((void*)GetMessageA, (void*)GetMessageA_Hook,
-           (void**)&g_origGetMessageA, L"GetMessageA");
-
     // PeekMessage hooks (PeekMessage-driven loops)
     HookFn((void*)PeekMessageW, (void*)PeekMessageW_Hook,
            (void**)&g_origPeekMessageW, L"PeekMessageW");
     HookFn((void*)PeekMessageA, (void*)PeekMessageA_Hook,
            (void**)&g_origPeekMessageA, L"PeekMessageA");
 
-    // DispatchMessage hooks (belt-and-suspenders)
-    HookFn((void*)DispatchMessageW, (void*)DispatchMessageW_Hook,
-           (void**)&g_origDispatchMessageW, L"DispatchMessageW");
+    // DispatchMessage hooks (primary interception point -- fatal if unavailable)
+    if (!HookFn((void*)DispatchMessageW, (void*)DispatchMessageW_Hook,
+                (void**)&g_origDispatchMessageW, L"DispatchMessageW", true))
+        return FALSE;
     HookFn((void*)DispatchMessageA, (void*)DispatchMessageA_Hook,
            (void**)&g_origDispatchMessageA, L"DispatchMessageA");
 
@@ -965,6 +1006,13 @@ BOOL Wh_ModInit() {
 }
 
 void Wh_ModAfterInit() {
+    g_scrollEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);  // auto-reset
+    if (!g_scrollEvent) {
+        // Without the event the scroll thread would busy-spin on a null handle.
+        Wh_Log(L"autoscroll: CreateEventW failed (%lu) -- scroll thread not started",
+               GetLastError());
+        return;
+    }
     g_threadRunning.store(true, std::memory_order_relaxed);
     g_scrollThread = std::thread(ScrollThreadProc);
     if (g_showIndicator.load(std::memory_order_relaxed))
@@ -997,15 +1045,16 @@ void Wh_ModBeforeUninit() {
     StopAutoscroll();
     HWND ind = g_indicatorHwnd.load(std::memory_order_acquire);
     if (ind) PostMessageW(ind, WM_CLOSE, 0, 0);
+
 }
 
 void Wh_ModUninit() {
     g_threadRunning.store(false, std::memory_order_relaxed);
+    if (g_scrollEvent) SetEvent(g_scrollEvent);  // unblock idle scroll thread
     if (g_scrollThread.joinable())    g_scrollThread.join();
+    if (g_scrollEvent) { CloseHandle(g_scrollEvent); g_scrollEvent = nullptr; }
     if (g_indicatorThread.joinable()) g_indicatorThread.join();
 
-    g_origGetMessageW      = nullptr;
-    g_origGetMessageA      = nullptr;
     g_origPeekMessageW     = nullptr;
     g_origPeekMessageA     = nullptr;
     g_origDispatchMessageW = nullptr;
