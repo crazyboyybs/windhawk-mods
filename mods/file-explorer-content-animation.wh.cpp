@@ -11,7 +11,7 @@
 // @github          https://github.com/crazyboyybs
 // @include         explorer.exe
 // @architecture    x86-64
-// @compilerOptions -lgdi32 -lole32 -lshell32 -lcomctl32 -ldcomp -ld3d11 -ldxgi
+// @compilerOptions -lgdi32 -lole32 -lshell32 -lcomctl32 -ld3d11 -ldxgi
 // @license         MIT
 // ==/WindhawkMod==
 
@@ -175,80 +175,80 @@ resuelto en builds recientes del canal Insider/Beta.
 // ==WindhawkModSettings==
 /*
 - duration: 420
-  $name: Duracao da animacao (ms)
-  $name:en: Animation duration (ms)
+  $name: Animation duration (ms)
+  $name:pt: Duracao da animacao (ms)
   $name:es: Duracion de la animacion (ms)
 
 - distance: 32
-  $name: Distancia do slide (px)
-  $name:en: Slide distance (px)
+  $name: Slide distance (px)
+  $name:pt: Distancia do slide (px)
   $name:es: Distancia del deslizamiento (px)
 
 - fade: false
   $name: Fade
-  $name:en: Fade
+  $name:pt: Fade
   $name:es: Fundido
-  $description: Faz o fundo desaparecer gradualmente ao navegar, usando animacao de opacidade via DirectComposition (GPU). Compativel com Mica, Acrilico e mods de transparencia.
-  $description:en: Fades the background out smoothly while navigating, using a DirectComposition opacity animation (GPU). Compatible with Mica, Acrylic and transparency mods.
+  $description: Fades the background out smoothly while navigating, using a DirectComposition opacity animation (GPU). Compatible with Mica, Acrylic and transparency mods.
+  $description:pt: Faz o fundo desaparecer gradualmente ao navegar, usando animacao de opacidade via DirectComposition (GPU). Compativel com Mica, Acrilico e mods de transparencia.
   $description:es: Desvanece el fondo suavemente al navegar, usando animacion de opacidad via DirectComposition (GPU). Compatible con Mica, Acrilico y mods de transparencia.
 
 - reverseDirection: false
-  $name: Direcao reversa
-  $name:en: Reverse direction
+  $name: Reverse direction
+  $name:pt: Direcao reversa
   $name:es: Direccion inversa
-  $description: O conteudo desce ao inves de subir. Nao se aplica as paginas de Propriedades, ao painel de navegacao, nem as transicoes de pagina (voltar/avancar/drill).
-  $description:en: Content slides down instead of up. Does not apply to Properties pages, the navigation pane, or page transitions (back/forward/drill).
+  $description: Content slides down instead of up. Does not apply to Properties pages, the navigation pane, or page transitions (back/forward/drill).
+  $description:pt: O conteudo desce ao inves de subir. Nao se aplica as paginas de Propriedades, ao painel de navegacao, nem as transicoes de pagina (voltar/avancar/drill).
   $description:es: El contenido se desliza hacia abajo en lugar de hacia arriba. No se aplica a las paginas de Propiedades, al panel de navegacion, ni a las transiciones de pagina (atras/adelante/drill).
 
 - pageTransitions: false
-  $name: Transicoes de pagina
-  $name:en: Page transitions
+  $name: Page transitions
+  $name:pt: Transicoes de pagina
   $name:es: Transiciones de pagina
-  $description: Detecta automaticamente o tipo de navegacao e aplica animacoes diferentes. Voltar desliza da esquerda, avancar da direita, subpasta usa slide curto e rapido. Requer resolucao de simbolos no explorerframe.dll (automatico). Quando desativado, todas as navegacoes usam a animacao de entrada padrao.
-  $description:en: Automatically detects the navigation type and applies different animations. Back slides from the left, forward from the right, subfolders use a short fast slide. Requires symbol resolution on explorerframe.dll (automatic). When disabled, all navigations use the default entrance animation.
+  $description: Automatically detects the navigation type and applies different animations. Back slides from the left, forward from the right, subfolders use a short fast slide. Requires symbol resolution on explorerframe.dll (automatic). When disabled, all navigations use the default entrance animation.
+  $description:pt: Detecta automaticamente o tipo de navegacao e aplica animacoes diferentes. Voltar desliza da esquerda, avancar da direita, subpasta usa slide curto e rapido. Requer resolucao de simbolos no explorerframe.dll (automatico). Quando desativado, todas as navegacoes usam a animacao de entrada padrao.
   $description:es: Detecta automaticamente el tipo de navegacion y aplica animaciones diferentes. Atras desliza desde la izquierda, adelante desde la derecha, subcarpetas usan deslizamiento corto y rapido. Requiere resolucion de simbolos en explorerframe.dll (automatico). Cuando esta desactivado, todas las navegaciones usan la animacion de entrada predeterminada.
 
 - animateNavPane: false
-  $name: Animar painel de navegacao
-  $name:en: Animate navigation pane
+  $name: Animate navigation pane
+  $name:pt: Animar painel de navegacao
   $name:es: Animar panel de navegacion
-  $description: A arvore de navegacao desliza da esquerda ao abrir o Explorer ou uma nova aba. No modo escuro, um fundo branco pode aparecer brevemente -- limitacao do GDI observada em builds estaveis. Parece resolvido em builds recentes do canal Insider/Beta.
-  $description:en: The navigation tree slides in from the left when opening Explorer or a new tab. In dark mode, a white background may briefly appear -- a Windows GDI limitation observed on stable builds. Appears resolved in recent Insider/Beta builds.
+  $description: The navigation tree slides in from the left when opening Explorer or a new tab. In dark mode, a white background may briefly appear -- a Windows GDI limitation observed on stable builds. Appears resolved in recent Insider/Beta builds.
+  $description:pt: A arvore de navegacao desliza da esquerda ao abrir o Explorer ou uma nova aba. No modo escuro, um fundo branco pode aparecer brevemente -- limitacao do GDI observada em builds estaveis. Parece resolvido em builds recentes do canal Insider/Beta.
   $description:es: El arbol de navegacion se desliza desde la izquierda al abrir el Explorador o una nueva pestana. En modo oscuro, puede aparecer brevemente un fondo blanco -- limitacion del GDI observada en builds estables. Parece resuelto en builds recientes del canal Insider/Beta.
 
 - propertyPages:
     - animate: false
-      $name: Animar paginas de propriedades
-      $name:en: Animate property pages
+      $name: Animate property pages
+      $name:pt: Animar paginas de propriedades
       $name:es: Animar paginas de propiedades
-      $description: Anima a troca de abas em janelas de Propriedades de pasta e arquivo (Geral, Ferramentas, etc.). A direcao reversa nao se aplica aqui.
-      $description:en: Animates tab switching in folder and file Properties windows (General, Tools, etc.). Reverse direction does not apply here.
+      $description: Animates tab switching in folder and file Properties windows (General, Tools, etc.). Reverse direction does not apply here.
+      $description:pt: Anima a troca de abas em janelas de Propriedades de pasta e arquivo (Geral, Ferramentas, etc.). A direcao reversa nao se aplica aqui.
       $description:es: Anima el cambio de pestanas en ventanas de Propiedades de carpeta y archivo (General, Herramientas, etc.). La direccion inversa no se aplica aqui.
     - tabTransitions: false
-      $name: Transicoes de aba
-      $name:en: Tab transitions
+      $name: Tab transitions
+      $name:pt: Transicoes de aba
       $name:es: Transiciones de pestana
-      $description: Aplica animacoes direcionais ao trocar abas. Aba a direita desliza para frente, a esquerda para tras. Requer "Animar paginas de propriedades" ativo.
-      $description:en: Applies directional animations when switching tabs. Tabs to the right slide forward, to the left slide back. Requires "Animate property pages" to be enabled.
+      $description: Applies directional animations when switching tabs. Tabs to the right slide forward, to the left slide back. Requires "Animate property pages" to be enabled.
+      $description:pt: Aplica animacoes direcionais ao trocar abas. Aba a direita desliza para frente, a esquerda para tras. Requer "Animar paginas de propriedades" ativo.
       $description:es: Aplica animaciones direccionales al cambiar pestanas. Las pestanas a la derecha deslizan hacia adelante, a la izquierda hacia atras. Requiere "Animar paginas de propiedades" activado.
-  $name: Paginas de Propriedades
-  $name:en: Property Pages
+  $name: Property Pages
+  $name:pt: Paginas de Propriedades
   $name:es: Paginas de Propiedades
 
 - firstOpenDelay: 500
-  $name: Delay na primeira abertura (ms)
-  $name:en: First open delay (ms)
+  $name: First open delay (ms)
+  $name:pt: Delay na primeira abertura (ms)
   $name:es: Retraso en la primera apertura (ms)
-  $description: Atraso aplicado apenas na primeira animacao de cada janela do Explorer.
-  $description:en: Delay applied only to the first animation of each Explorer window.
+  $description: Delay applied only to the first animation of each Explorer window.
+  $description:pt: Atraso aplicado apenas na primeira animacao de cada janela do Explorer.
   $description:es: Retraso aplicado solo en la primera animacion de cada ventana del Explorador.
 
 - navigationDelay: 140
-  $name: Delay ao trocar de pasta (ms)
-  $name:en: Folder navigation delay (ms)
+  $name: Folder navigation delay (ms)
+  $name:pt: Delay ao trocar de pasta (ms)
   $name:es: Retraso al cambiar de carpeta (ms)
-  $description: Tempo para esconder o "Trabalhando nisso..." durante navegacao.
-  $description:en: Time used to hide the "Working on it..." message during navigation.
+  $description: Time used to hide the "Working on it..." message during navigation.
+  $description:pt: Tempo para esconder o "Trabalhando nisso..." durante navegacao.
   $description:es: Tiempo utilizado para ocultar el mensaje "Trabajando en ello..." durante la navegacion.
 */
 // ==/WindhawkModSettings==
@@ -271,7 +271,6 @@ resuelto en builds recientes del canal Insider/Beta.
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 #include <vector>
 
 // -----------------------------------------------
@@ -359,6 +358,7 @@ static inline float EaseOutCubic(float t) {
 
 static std::unordered_set<HWND>       g_animating;
 static std::mutex                      g_animMtx;
+static std::condition_variable         g_animDoneCv;   // notificada quando g_animating encolhe
 static std::atomic<bool>               g_unloading{false};
 
 // Permite que SleepUntil seja interrompido imediatamente quando o mod
@@ -700,32 +700,38 @@ static int CalcFadeDuration(int effectiveDuration) {
 
 static ID3D11Device*               g_d3dDevice  = nullptr;
 static IDXGIDevice*                g_dxgiDevice = nullptr;
-static IDCompositionDesktopDevice* g_dcDevice   = nullptr;
+static std::atomic<IDCompositionDesktopDevice*> g_dcDevice{nullptr};
 
 struct DCompFadeAnim {
     IDCompositionTarget*      pTarget  = nullptr;
     IDCompositionVisual2*     pVisual  = nullptr;
     IDCompositionSurface*     pSurface = nullptr;
     IDCompositionEffectGroup* pEffect  = nullptr;
+    uint64_t                  generation = 0; // identifica instancia unica do fade
 };
 
 static std::mutex                               g_dcFadeMtx;
 static std::unordered_map<HWND, DCompFadeAnim>  g_dcFades;
+static std::atomic<uint64_t>                    g_dcFadeGen{0}; // contador de geracao
 
 // Worker de cleanup DComp: substitui thread detachada por navegacao por um
 // unico thread de longa duracao. Elimina criacao de thread em navegacao rapida.
 // A fila armazena refs de device AddRef'd -- sempre libertados no cleanup ou drain.
-// hwndRoot e a chave usada para consultar g_dcFades no momento do cleanup,
-// permitindo detectar fades cancelados por nova navegacao (not found -> so Release dev).
+// hwndRoot e a chave usada para consultar g_dcFades no momento do cleanup.
+// generation identifica a instancia exata do fade que este cleanup deve destruir --
+// se a geracao no mapa nao bater (nova navegacao substituiu o fade), o cleanup
+// apenas liberta o ref do device sem destruir o visual corrente.
 struct PendingCleanup {
     HWND                        hwndRoot;
     IDCompositionDesktopDevice* dev;      // AddRef'd
     ULONGLONG                   destroyAt;
+    uint64_t                    generation;
 };
 static std::vector<PendingCleanup> g_cleanupQueue;
 static std::mutex                  g_cleanupMtx;
 static std::condition_variable     g_cleanupCv;
 static std::thread                 g_cleanupThread;
+static std::thread                 g_initThread;     // D3D/DComp init em background
 
 // Frame capturado no BrowseObject hook (conteudo antigo visivel e dimensionado).
 // Consumido em HookShowWindow para criar o overlay DComp.
@@ -763,7 +769,8 @@ static void CleanupWorkerProc() {
                 {
                     std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
                     auto it = g_dcFades.find(c.hwndRoot);
-                    if (it != g_dcFades.end()) {
+                    if (it != g_dcFades.end() &&
+                        it->second.generation == c.generation) {
                         toDestroy = it->second;
                         hasItem   = true;
                         g_dcFades.erase(it);
@@ -779,7 +786,9 @@ static void CleanupWorkerProc() {
                     if (toDestroy.pSurface) toDestroy.pSurface->Release();
                     if (c.dev) { c.dev->Commit(); c.dev->Release(); }
                 } else {
-                    // Fade ja cancelado por nova navegacao -- libertar so o ref do device.
+                    // Fade cancelado por nova navegacao (geracao diferente ou
+                    // entrada ausente): resources ja libertados em StartDCompFade.
+                    // Libertar so o ref do device.
                     if (c.dev) c.dev->Release();
                 }
             }
@@ -824,7 +833,8 @@ static void CleanupWorkerProc() {
             {
                 std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
                 auto it = g_dcFades.find(c.hwndRoot);
-                if (it != g_dcFades.end()) {
+                if (it != g_dcFades.end() &&
+                    it->second.generation == c.generation) {
                     toDestroy = it->second;
                     hasItem   = true;
                     g_dcFades.erase(it);
@@ -840,8 +850,9 @@ static void CleanupWorkerProc() {
                 if (toDestroy.pSurface) toDestroy.pSurface->Release();
                 if (c.dev) { c.dev->Commit(); c.dev->Release(); }
             } else {
-                // Fade cancelado por nova navegacao rapida: resources ja libertados
-                // em StartDCompFade. Libertar apenas o ref do device.
+                // Fade cancelado por nova navegacao rapida (geracao diferente
+                // ou entrada ausente): resources ja libertados em
+                // StartDCompFade. Libertar apenas o ref do device.
                 if (c.dev) c.dev->Release();
             }
         }
@@ -859,7 +870,10 @@ static void CleanupWorkerProc() {
 // StartDCompFade toma posse de frame.hbm e garante DeleteObject em todos
 // os caminhos (sucesso e falha). O caller nunca deve libertar hbm apos esta chamada.
 static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
-    if (!g_dcDevice || !frame.hbm || frame.w <= 0 || frame.h <= 0) {
+    // Snapshot atomico do device -- usado durante toda a funcao.
+    // Evita data race com o init thread que escreve g_dcDevice via store.
+    IDCompositionDesktopDevice* dcDev = g_dcDevice.load(std::memory_order_acquire);
+    if (!dcDev || !frame.hbm || frame.w <= 0 || frame.h <= 0) {
         DeleteObject(frame.hbm);
         return false;
     }
@@ -884,7 +898,7 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
             if (prev.pEffect)  prev.pEffect->Release();
             if (prev.pVisual)  prev.pVisual->Release();
             if (prev.pSurface) prev.pSurface->Release();
-            g_dcDevice->Commit();
+            dcDev->Commit();
         }
     }
 
@@ -892,12 +906,12 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
     HRESULT hr;
 
     // topmost=FALSE: overlay abaixo de layers existentes (pill TW visivel).
-    hr = g_dcDevice->CreateTargetForHwnd(hwndRoot, FALSE, &anim.pTarget);
+    hr = dcDev->CreateTargetForHwnd(hwndRoot, FALSE, &anim.pTarget);
     if (FAILED(hr)) {
         DeleteObject(frame.hbm); return false;
     }
 
-    hr = g_dcDevice->CreateSurface((UINT)frame.w, (UINT)frame.h,
+    hr = dcDev->CreateSurface((UINT)frame.w, (UINT)frame.h,
                                    DXGI_FORMAT_B8G8R8A8_UNORM,
                                    DXGI_ALPHA_MODE_IGNORE,
                                    &anim.pSurface);
@@ -929,7 +943,7 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
     // A partir daqui, frame.hbm nao e mais necessario em nenhum caminho.
     DeleteObject(frame.hbm);
 
-    hr = g_dcDevice->CreateVisual(&anim.pVisual);
+    hr = dcDev->CreateVisual(&anim.pVisual);
     if (FAILED(hr)) {
         anim.pSurface->Release(); anim.pTarget->Release(); return false;
     }
@@ -939,9 +953,9 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
 
     // Animacao de opacidade: linear 1->0 em fadeMs ms (WinUI spec).
     IDCompositionEffectGroup* pEffect = nullptr;
-    if (SUCCEEDED(g_dcDevice->CreateEffectGroup(&pEffect))) {
+    if (SUCCEEDED(dcDev->CreateEffectGroup(&pEffect))) {
         IDCompositionAnimation* pAnimO = nullptr;
-        if (SUCCEEDED(g_dcDevice->CreateAnimation(&pAnimO))) {
+        if (SUCCEEDED(dcDev->CreateAnimation(&pAnimO))) {
             double durSec = fadeMs / 1000.0;
             pAnimO->AddCubic(0.0, 1.0f, (float)(-1.0 / durSec), 0.0f, 0.0f);
             pAnimO->End(durSec, 0.0f);
@@ -954,7 +968,7 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
 
     // Visual raiz para posicionar o content visual com offset.
     IDCompositionVisual2* pRoot = nullptr;
-    if (SUCCEEDED(g_dcDevice->CreateVisual(&pRoot))) {
+    if (SUCCEEDED(dcDev->CreateVisual(&pRoot))) {
         pRoot->AddVisual(anim.pVisual, FALSE, nullptr);
         anim.pTarget->SetRoot(pRoot);
         pRoot->Release();
@@ -962,7 +976,7 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
         anim.pTarget->SetRoot(anim.pVisual);
     }
 
-    hr = g_dcDevice->Commit();
+    hr = dcDev->Commit();
     if (FAILED(hr)) {
         if (anim.pEffect)  anim.pEffect->Release();
         anim.pVisual->Release();
@@ -970,6 +984,13 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
         anim.pTarget->Release();
         return false;
     }
+
+    // Atribuir geracao unica a esta instancia do fade.
+    // O cleanup worker verifica esta geracao antes de destruir: se uma
+    // navegacao mais recente substituiu o fade, o cleanup stale apenas
+    // liberta o ref do device sem tocar no visual corrente.
+    uint64_t gen = g_dcFadeGen.fetch_add(1, std::memory_order_relaxed);
+    anim.generation = gen;
 
     {
         std::lock_guard<std::mutex> lk(g_dcFadeMtx);
@@ -979,12 +1000,12 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
     // Enfileirar cleanup no worker de longa duracao.
     // AddRef no device para garantir validade ate o worker processar o item,
     // independente de quando Wh_ModUninit correr.
-    IDCompositionDesktopDevice* devForCleanup = g_dcDevice;
-    if (devForCleanup) devForCleanup->AddRef();
+    dcDev->AddRef();
     {
         std::lock_guard<std::mutex> lk(g_cleanupMtx);
-        g_cleanupQueue.push_back({hwndRoot, devForCleanup,
-                                  GetTickCount64() + (ULONGLONG)(fadeMs + 50)});
+        g_cleanupQueue.push_back({hwndRoot, dcDev,
+                                  GetTickCount64() + (ULONGLONG)(fadeMs + 50),
+                                  gen});
         g_cleanupCv.notify_one();
     }
 
@@ -1037,10 +1058,28 @@ static void EndFade(HWND hwnd) {
 static void RunSlideIn(HWND hwnd, AnimAxis axis, bool isPropPage,
                        bool useFade, bool useDCompFade, int buttonRowTop,
                        TransitionType transition) {
-    if (!IsWindow(hwnd)) return;
+    if (!IsWindow(hwnd)) {
+        {
+            std::lock_guard<std::mutex> lk(g_animMtx);
+            g_animating.erase(hwnd);
+        }
+        g_animDoneCv.notify_all();
+        return;
+    }
 
     HWND parent = GetParent(hwnd);
-    if (!parent) return;
+    if (!parent) {
+        // Janela existe mas sem parent — restaurar RGN para desfazer
+        // o HideViaRgn aplicado em HookShowWindow/HookSetWindowPos.
+        RestoreRgn(hwnd);
+        if (useFade && !useDCompFade) EndFade(hwnd);
+        {
+            std::lock_guard<std::mutex> lk(g_animMtx);
+            g_animating.erase(hwnd);
+        }
+        g_animDoneCv.notify_all();
+        return;
+    }
 
     // Snapshot de configuracoes para evitar data race com LoadSettings.
     // Todos os acessos a settings durante a animacao usam esta copia local.
@@ -1214,8 +1253,11 @@ static void RunSlideIn(HWND hwnd, AnimAxis axis, bool isPropPage,
         if (useFade && !useDCompFade) EndFade(hwnd);
     }
 
-    std::lock_guard<std::mutex> lk(g_animMtx);
-    g_animating.erase(hwnd);
+    {
+        std::lock_guard<std::mutex> lk(g_animMtx);
+        g_animating.erase(hwnd);
+    }
+    g_animDoneCv.notify_all();
 }
 
 // -----------------------------------------------
@@ -1270,7 +1312,7 @@ static bool Classify(HWND hwnd, AnimInfo& info) {
 
     // DComp fade preferencial quando disponivel — compativel com Mica/Acrylic.
     // CPU fade (WS_EX_LAYERED) como fallback enquanto DComp inicializa.
-    bool useDCompFade = alphaFade && (g_dcDevice != nullptr);
+    bool useDCompFade = alphaFade && (g_dcDevice.load(std::memory_order_acquire) != nullptr);
     bool useCpuFade   = alphaFade && !useDCompFade;
 
     if (IsExplorerContent(hwnd)) {
@@ -1531,12 +1573,19 @@ HRESULT WINAPI HookBrowseObject(void* pThis, LPCITEMIDLIST pidl, UINT wFlags) {
 
                 // Capturar o ecra antes da navegacao: o conteudo antigo
                 // esta visivel e correctamente dimensionado neste momento.
-                if (g_dcDevice && g_s.alphaFade) {
+                // Snapshot de alphaFade e duration sob lock para consistencia
+                // com LoadSettings (chamado do thread do Windhawk).
+                bool snapFade;
+                int  snapDuration;
+                AcquireSRWLockShared(&g_sLock);
+                snapFade     = g_s.alphaFade;
+                snapDuration = g_s.duration;
+                ReleaseSRWLockShared(&g_sLock);
+
+                if (g_dcDevice.load(std::memory_order_acquire) && snapFade) {
                     HWND hwndContent = FindVisibleContent(hwndSB);
 
                     if (hwndContent) {
-                        WCHAR contentCls[64] = {};
-                        RealGetWindowClassW(hwndContent, contentCls, 64);
                         RECT rc{};
                         GetClientRect(hwndContent, &rc);
                         int w = rc.right, h = rc.bottom;
@@ -1568,12 +1617,9 @@ HRESULT WINAPI HookBrowseObject(void* pThis, LPCITEMIDLIST pidl, UINT wFlags) {
                             }
                             if (hbm) {
                                 CapturedFrame cf{hbm, ptInRoot, w, h};
-                                AcquireSRWLockShared(&g_sLock);
-                                int configDur = g_s.duration;
-                                ReleaseSRWLockShared(&g_sLock);
                                 int effDur = (type == TransitionType::EnterFolder)
-                                             ? std::max(80, (int)(configDur * 0.70f))
-                                             : configDur;
+                                             ? std::max(80, (int)(snapDuration * 0.70f))
+                                             : snapDuration;
                                 // StartDCompFade toma posse de hbm em todos os caminhos.
                                 StartDCompFade(root, cf, CalcFadeDuration(effDur));
                             }
@@ -1594,6 +1640,8 @@ HRESULT WINAPI HookBrowseObject(void* pThis, LPCITEMIDLIST pidl, UINT wFlags) {
 static void DispatchAnimation(HWND hwnd, AnimInfo info) {
     {
         std::lock_guard<std::mutex> lk(g_animMtx);
+        // Nao iniciar novas animacoes durante o descarregamento.
+        if (g_unloading.load(std::memory_order_relaxed)) return;
         if (g_animating.count(hwnd)) return;
         g_animating.insert(hwnd);
     }
@@ -1617,8 +1665,11 @@ static void DispatchAnimation(HWND hwnd, AnimInfo info) {
                 RestoreRgn(hwnd);
                 if (info.useFade && !info.useDCompFade) EndFade(hwnd);
             }
-            std::lock_guard<std::mutex> lk(g_animMtx);
-            g_animating.erase(hwnd);
+            {
+                std::lock_guard<std::mutex> lk(g_animMtx);
+                g_animating.erase(hwnd);
+            }
+            g_animDoneCv.notify_all();
             return;
         }
         RunSlideIn(hwnd, info.axis, info.isPropPage, info.useFade,
@@ -1719,7 +1770,9 @@ BOOL Wh_ModInit() {
     // Iniciar D3D11/DComp em background desde Wh_ModInit (mais cedo que
     // Wh_ModAfterInit) para maximizar a probabilidade de estar pronto
     // antes da primeira navegacao do utilizador.
-    std::thread([]() {
+    // Thread armazenado em g_initThread e joined em Wh_ModBeforeUninit
+    // para evitar UAF se o mod for descarregado durante a inicializacao.
+    g_initThread = std::thread([]() {
         D3D_FEATURE_LEVEL level;
 
         // Tentar reutilizar um adapter DXGI ja carregado pelo Explorer para
@@ -1733,6 +1786,10 @@ BOOL Wh_ModInit() {
             pFactory->Release();
 
             if (pAdapter) {
+                if (g_unloading.load(std::memory_order_relaxed)) {
+                    pAdapter->Release();
+                    return;
+                }
                 D3D11CreateDevice(pAdapter,
                                   D3D_DRIVER_TYPE_UNKNOWN, // UNKNOWN quando adapter explicito
                                   nullptr,
@@ -1743,6 +1800,8 @@ BOOL Wh_ModInit() {
             }
         }
 
+        if (g_unloading.load(std::memory_order_relaxed)) return;
+
         // Fallback: device WARP (software) — sempre disponivel, init instantanea.
         if (!g_d3dDevice) {
             D3D11CreateDevice(nullptr,
@@ -1752,6 +1811,8 @@ BOOL Wh_ModInit() {
                               nullptr, 0, D3D11_SDK_VERSION,
                               &g_d3dDevice, &level, nullptr);
         }
+
+        if (g_unloading.load(std::memory_order_relaxed)) return;
 
         if (g_d3dDevice) {
             g_d3dDevice->QueryInterface(__uuidof(IDXGIDevice),
@@ -1764,13 +1825,18 @@ BOOL Wh_ModInit() {
             if (hDComp) {
                 auto pfn = (DCompCreate2_t)GetProcAddress(hDComp,
                                                           "DCompositionCreateDevice2");
-                if (pfn)
+                if (pfn) {
+                    IDCompositionDesktopDevice* pDC = nullptr;
                     pfn(g_dxgiDevice,
                         __uuidof(IDCompositionDesktopDevice),
-                        reinterpret_cast<void**>(&g_dcDevice));
+                        reinterpret_cast<void**>(&pDC));
+                    // Store com release: garante que g_d3dDevice e g_dxgiDevice
+                    // estao visiveis para qualquer thread que leia g_dcDevice != null.
+                    g_dcDevice.store(pDC, std::memory_order_release);
+                }
             }
         }
-    }).detach();
+    });
 
     if (!Wh_SetFunctionHook(
             reinterpret_cast<void*>(ShowWindow),
@@ -1791,12 +1857,10 @@ BOOL Wh_ModInit() {
         return FALSE;
 
     // Hook de CShellBrowser::BrowseObject em explorerframe.dll.
-    // Estrategia em 3 camadas (aplicada tanto em ModInit quanto AfterInit):
+    // Estrategia em 2 camadas (aplicada tanto em ModInit quanto AfterInit):
     // 1. WindhawkUtils::HookSymbols  -- cache de PDB, mostra UI de download.
     //    Tenta varios nomes possiveis; o nome exato varia entre builds.
-    // 2. Wh_FindFirstSymbol substring -- mais lento, sem cache, mas robusto:
-    //    funciona para qualquer variante de nome desde que PDB esteja disponivel.
-    // 3. TryHookBrowseObjectViaVtable -- sem PDB, sempre funciona.
+    // 2. TryHookBrowseObjectViaVtable -- sem PDB, sempre funciona.
     {
         HMODULE hEF = GetModuleHandleW(L"explorerframe.dll");
         if (hEF) {
@@ -1821,30 +1885,7 @@ BOOL Wh_ModInit() {
             if (g_origBrowseObject) {
                 Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols");
             } else {
-                // Camada 2: Wh_FindFirstSymbol com substring -- robusto mas sem cache.
-                // Funciona para qualquer variante de nome mangled enquanto PDB disponivel.
-                Wh_Log(L"[INIT] HookSymbols falhou -- tentando Wh_FindFirstSymbol");
-                WH_FIND_SYMBOL_OPTIONS opts = {};
-                WH_FIND_SYMBOL sym = {};
-                HANDLE search = Wh_FindFirstSymbol(hEF, &opts, &sym);
-                if (search) {
-                    do {
-                        if (wcsstr(sym.symbol, L"BrowseObject") &&
-                            wcsstr(sym.symbol, L"CShellBrowser") &&
-                            !wcsstr(sym.symbol, L"Internal")) {
-                            if (Wh_SetFunctionHook(
-                                    sym.address,
-                                    reinterpret_cast<void*>(HookBrowseObject),
-                                    reinterpret_cast<void**>(&g_origBrowseObject)))
-                                Wh_Log(L"[INIT] BrowseObject hooked OK via FindFirstSymbol: %s",
-                                       sym.symbol);
-                            break;
-                        }
-                    } while (Wh_FindNextSymbol(search, &sym));
-                    Wh_FindCloseSymbol(search);
-                }
-                if (!g_origBrowseObject)
-                    Wh_Log(L"[INIT] FindFirstSymbol falhou -- vtable em AfterInit");
+                Wh_Log(L"[INIT] HookSymbols falhou -- vtable em AfterInit");
             }
         } else {
             Wh_Log(L"[INIT] explorerframe.dll nao encontrado -- vtable em AfterInit");
@@ -1936,7 +1977,7 @@ static void TryHookBrowseObjectViaVtable() {
     }
     psw->Release();
 
-    if (hrCO == S_OK) CoUninitialize();
+    if (hrCO == S_OK || hrCO == S_FALSE) CoUninitialize();
 }
 
 void Wh_ModAfterInit() {
@@ -1975,30 +2016,7 @@ void Wh_ModAfterInit() {
             if (g_origBrowseObject)
                 Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols (AfterInit)");
         }
-        // Camada 2: Wh_FindFirstSymbol substring (sem cache, robusto)
-        if (hEF && !g_origBrowseObject) {
-            Wh_Log(L"[INIT] HookSymbols falhou em AfterInit -- tentando FindFirstSymbol");
-            WH_FIND_SYMBOL_OPTIONS opts = {};
-            WH_FIND_SYMBOL sym = {};
-            HANDLE search = Wh_FindFirstSymbol(hEF, &opts, &sym);
-            if (search) {
-                do {
-                    if (wcsstr(sym.symbol, L"BrowseObject") &&
-                        wcsstr(sym.symbol, L"CShellBrowser") &&
-                        !wcsstr(sym.symbol, L"Internal")) {
-                        if (Wh_SetFunctionHook(
-                                sym.address,
-                                reinterpret_cast<void*>(HookBrowseObject),
-                                reinterpret_cast<void**>(&g_origBrowseObject)))
-                            Wh_Log(L"[INIT] BrowseObject hooked via FindFirstSymbol (AfterInit): %s",
-                                   sym.symbol);
-                        break;
-                    }
-                } while (Wh_FindNextSymbol(search, &sym));
-                Wh_FindCloseSymbol(search);
-            }
-        }
-        // Camada 3: vtable (sem PDB, sempre funciona)
+        // Camada 2: vtable (sem PDB, sempre funciona)
         if (!g_origBrowseObject)
             TryHookBrowseObjectViaVtable();
         if (g_origBrowseObject)
@@ -2008,9 +2026,16 @@ void Wh_ModAfterInit() {
 
 void Wh_ModBeforeUninit() {
     // Sinaliza para todas as threads em voo que devem encerrar.
-    g_unloading.store(true, std::memory_order_relaxed);
+    g_unloading.store(true, std::memory_order_release);
     // Acorda imediatamente threads dormindo em SleepUntil.
     g_sleepCv.notify_all();
+
+    // Aguardar o init thread D3D/DComp terminar antes de prosseguir.
+    // Se o mod for descarregado durante a inicializacao (cold driver ~100-300ms),
+    // sem este join o thread continuaria a escrever g_d3dDevice/g_dxgiDevice
+    // enquanto Wh_ModUninit os liberta -> UAF.
+    if (g_initThread.joinable())
+        g_initThread.join();
 
     // Remover subclasses antes do DLL descarregar para evitar crash com
     // proc invalido. Envia WM_WH_REMOVE_SUBCLASS para o thread da janela
@@ -2045,8 +2070,15 @@ void Wh_ModBeforeUninit() {
         }
     }
 
-    // Aguarda threads que ja estao no loop de animacao terminarem.
-    Sleep(100);
+    // Aguardar threads de animacao em voo terminarem.
+    // Condition variable notificada sempre que g_animating encolhe (RunSlideIn
+    // e DispatchAnimation early exit). Timeout de 2s evita deadlock se alguma
+    // thread travar (ex: descheduled pelo kernel sob carga extrema).
+    {
+        std::unique_lock<std::mutex> lk(g_animMtx);
+        g_animDoneCv.wait_for(lk, std::chrono::milliseconds(2000),
+            [] { return g_animating.empty(); });
+    }
 
     // Acordar e aguardar o worker de cleanup DComp.
     // Join aqui garante que todos os refs de device AddRef'd sao libertados
@@ -2071,7 +2103,8 @@ void Wh_ModUninit() {
         }
         g_dcFades.clear();
     }
-    if (g_dcDevice)  { g_dcDevice->Commit();  g_dcDevice->Release();  g_dcDevice  = nullptr; }
+    IDCompositionDesktopDevice* dcDev = g_dcDevice.exchange(nullptr, std::memory_order_relaxed);
+    if (dcDev)  { dcDev->Commit();  dcDev->Release(); }
     if (g_dxgiDevice){ g_dxgiDevice->Release(); g_dxgiDevice = nullptr; }
     if (g_d3dDevice) { g_d3dDevice->Release();  g_d3dDevice  = nullptr; }
 
