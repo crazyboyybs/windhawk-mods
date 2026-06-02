@@ -266,6 +266,8 @@ resuelto en builds recientes del canal Insider/Beta.
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <climits>
+#include <cmath>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -457,21 +459,17 @@ static LRESULT CALLBACK ExplorerSubclassProc(HWND hwnd, UINT msg,
     }
     // Solicitacao de remocao antes do DLL descarregar (enviada por Wh_ModBeforeUninit).
     if (msg == WM_WH_REMOVE_SUBCLASS) {
-        RemoveWindowSubclass(hwnd,
-            reinterpret_cast<SUBCLASSPROC>(ExplorerSubclassProc),
-            APPCOMMAND_SUBCLASS_ID);
+        WindhawkUtils::RemoveWindowSubclassFromAnyThread(hwnd, ExplorerSubclassProc);
         std::lock_guard<std::mutex> lk(g_subclassMtx);
         g_subclassedWindows.erase(hwnd);
         return 0;
     }
     if (msg == WM_DESTROY) {
-        // RemoveWindowSubclass evita que o sistema acesse o proc do DLL
-        // apos a janela ser destruida. Sem isso, a limpeza dependeria
-        // exclusivamente do Wh_ModBeforeUninit, o que cria uma janela de
-        // vulnerabilidade se o DLL for descarregado apos o WM_DESTROY.
-        RemoveWindowSubclass(hwnd,
-            reinterpret_cast<SUBCLASSPROC>(ExplorerSubclassProc),
-            APPCOMMAND_SUBCLASS_ID);
+        // RemoveWindowSubclassFromAnyThread garante que a subclass e
+        // removida com os parametros correctos (SubclassProcWrapper + id).
+        // Sem isso, a limpeza dependeria exclusivamente do auto-remove em
+        // WM_NCDESTROY, o que e seguro mas atrasa a remocao.
+        WindhawkUtils::RemoveWindowSubclassFromAnyThread(hwnd, ExplorerSubclassProc);
         std::lock_guard<std::mutex> lk(g_subclassMtx);
         g_subclassedWindows.erase(hwnd);
     }
@@ -495,17 +493,13 @@ static LRESULT CALLBACK PropSheetSubclassProc(HWND hwnd, UINT msg,
         }
     }
     if (msg == WM_WH_REMOVE_SUBCLASS) {
-        RemoveWindowSubclass(hwnd,
-            reinterpret_cast<SUBCLASSPROC>(PropSheetSubclassProc),
-            PROPSHEET_SUBCLASS_ID);
+        WindhawkUtils::RemoveWindowSubclassFromAnyThread(hwnd, PropSheetSubclassProc);
         std::lock_guard<std::mutex> lk(g_propSheetMtx);
         g_propSheets.erase(hwnd);
         return 0;
     }
     if (msg == WM_DESTROY) {
-        RemoveWindowSubclass(hwnd,
-            reinterpret_cast<SUBCLASSPROC>(PropSheetSubclassProc),
-            PROPSHEET_SUBCLASS_ID);
+        WindhawkUtils::RemoveWindowSubclassFromAnyThread(hwnd, PropSheetSubclassProc);
         std::lock_guard<std::mutex> lk(g_propSheetMtx);
         g_propSheets.erase(hwnd);
     }
@@ -746,9 +740,10 @@ struct CapturedFrame {
 // detachadas. Dorme ate o proximo item ficar pronto, processa em batch,
 // e drena a fila em shutdown (join ocorre antes de Wh_ModUninit libertar devices).
 //
-// Ordem de locks: sempre g_cleanupMtx liberado antes de adquirir g_dcFadeMtx.
-// StartDCompFade adquire g_dcFadeMtx e depois g_cleanupMtx (sequencialmente,
-// nunca aninhados) -- sem inversao de ordem possivel.
+// Ordem de locks: StartDCompFade adquire g_dcFadeMtx como lock externo (cobre
+// TODAS as chamadas DComp) e depois g_cleanupMtx (aninhado, para enfileirar).
+// CleanupWorkerProc liberta g_cleanupMtx (lk.unlock) antes de adquirir
+// g_dcFadeMtx para teardown -- nunca aninhados no worker, sem inversao.
 static void CleanupWorkerProc() {
     std::unique_lock<std::mutex> lk(g_cleanupMtx);
     for (;;) {
@@ -764,31 +759,20 @@ static void CleanupWorkerProc() {
             std::vector<PendingCleanup> drain = std::move(g_cleanupQueue);
             lk.unlock();
             for (auto& c : drain) {
-                DCompFadeAnim toDestroy{};
-                bool hasItem = false;
-                {
-                    std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
-                    auto it = g_dcFades.find(c.hwndRoot);
-                    if (it != g_dcFades.end() &&
-                        it->second.generation == c.generation) {
-                        toDestroy = it->second;
-                        hasItem   = true;
-                        g_dcFades.erase(it);
-                    }
-                }
-                if (hasItem) {
-                    if (toDestroy.pTarget) {
-                        toDestroy.pTarget->SetRoot(nullptr);
-                        toDestroy.pTarget->Release();
-                    }
-                    if (toDestroy.pEffect)  toDestroy.pEffect->Release();
-                    if (toDestroy.pVisual)  toDestroy.pVisual->Release();
-                    if (toDestroy.pSurface) toDestroy.pSurface->Release();
+                std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
+                auto it = g_dcFades.find(c.hwndRoot);
+                if (it != g_dcFades.end() &&
+                    it->second.generation == c.generation) {
+                    DCompFadeAnim a = it->second;
+                    g_dcFades.erase(it);
+                    if (a.pTarget) { a.pTarget->SetRoot(nullptr); a.pTarget->Release(); }
+                    if (a.pEffect)  a.pEffect->Release();
+                    if (a.pVisual)  a.pVisual->Release();
+                    if (a.pSurface) a.pSurface->Release();
                     if (c.dev) { c.dev->Commit(); c.dev->Release(); }
                 } else {
                     // Fade cancelado por nova navegacao (geracao diferente ou
                     // entrada ausente): resources ja libertados em StartDCompFade.
-                    // Libertar so o ref do device.
                     if (c.dev) c.dev->Release();
                 }
             }
@@ -828,26 +812,16 @@ static void CleanupWorkerProc() {
         lk.unlock();
 
         for (auto& c : ready) {
-            DCompFadeAnim toDestroy{};
-            bool hasItem = false;
-            {
-                std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
-                auto it = g_dcFades.find(c.hwndRoot);
-                if (it != g_dcFades.end() &&
-                    it->second.generation == c.generation) {
-                    toDestroy = it->second;
-                    hasItem   = true;
-                    g_dcFades.erase(it);
-                }
-            }
-            if (hasItem) {
-                if (toDestroy.pTarget) {
-                    toDestroy.pTarget->SetRoot(nullptr);
-                    toDestroy.pTarget->Release();
-                }
-                if (toDestroy.pEffect)  toDestroy.pEffect->Release();
-                if (toDestroy.pVisual)  toDestroy.pVisual->Release();
-                if (toDestroy.pSurface) toDestroy.pSurface->Release();
+            std::lock_guard<std::mutex> lkf(g_dcFadeMtx);
+            auto it = g_dcFades.find(c.hwndRoot);
+            if (it != g_dcFades.end() &&
+                it->second.generation == c.generation) {
+                DCompFadeAnim a = it->second;
+                g_dcFades.erase(it);
+                if (a.pTarget) { a.pTarget->SetRoot(nullptr); a.pTarget->Release(); }
+                if (a.pEffect)  a.pEffect->Release();
+                if (a.pVisual)  a.pVisual->Release();
+                if (a.pSurface) a.pSurface->Release();
                 if (c.dev) { c.dev->Commit(); c.dev->Release(); }
             } else {
                 // Fade cancelado por nova navegacao rapida (geracao diferente
@@ -879,21 +853,18 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
     }
 
 
+    // Serializar TODAS as chamadas DComp no device e nos seus objectos.
+    // DirectComposition nao e internamente thread-safe; sem este lock, o
+    // cleanup worker pode chamar SetRoot/Release/Commit concorrentemente
+    // com a criacao de um novo fade, corrompendo o estado de composicao.
+    std::lock_guard<std::mutex> lkDC(g_dcFadeMtx);
+
     // Cancelar fade anterior neste root se existir.
-    // Mesmo padrao: copiar, apagar, libertar mutex, depois DComp.
     {
-        DCompFadeAnim prev{};
-        bool hasPrev = false;
-        {
-            std::lock_guard<std::mutex> lk(g_dcFadeMtx);
-            auto it = g_dcFades.find(hwndRoot);
-            if (it != g_dcFades.end()) {
-                prev    = it->second;
-                hasPrev = true;
-                g_dcFades.erase(it);
-            }
-        }
-        if (hasPrev) {
+        auto it = g_dcFades.find(hwndRoot);
+        if (it != g_dcFades.end()) {
+            DCompFadeAnim prev = it->second;
+            g_dcFades.erase(it);
             if (prev.pTarget) { prev.pTarget->SetRoot(nullptr); prev.pTarget->Release(); }
             if (prev.pEffect)  prev.pEffect->Release();
             if (prev.pVisual)  prev.pVisual->Release();
@@ -986,16 +957,9 @@ static bool StartDCompFade(HWND hwndRoot, CapturedFrame frame, int fadeMs) {
     }
 
     // Atribuir geracao unica a esta instancia do fade.
-    // O cleanup worker verifica esta geracao antes de destruir: se uma
-    // navegacao mais recente substituiu o fade, o cleanup stale apenas
-    // liberta o ref do device sem tocar no visual corrente.
     uint64_t gen = g_dcFadeGen.fetch_add(1, std::memory_order_relaxed);
     anim.generation = gen;
-
-    {
-        std::lock_guard<std::mutex> lk(g_dcFadeMtx);
-        g_dcFades[hwndRoot] = anim;
-    }
+    g_dcFades[hwndRoot] = anim;
 
     // Enfileirar cleanup no worker de longa duracao.
     // AddRef no device para garantir validade ate o worker processar o item,
@@ -1688,6 +1652,10 @@ static thread_local bool g_inSW   = false;
 BOOL WINAPI HookShowWindow(HWND hwnd, int cmd) {
     if (g_inSW) return g_origSW(hwnd, cmd);
     if (IsWindowVisible(hwnd)) return g_origSW(hwnd, cmd);
+    // Mod a descarregar: nao aplicar HideViaRgn/BeginFade porque
+    // DispatchAnimation vai retornar sem iniciar RunSlideIn,
+    // deixando a janela invisivel ou semi-transparente.
+    if (g_unloading.load(std::memory_order_acquire)) return g_origSW(hwnd, cmd);
 
     if (cmd != SW_SHOW && cmd != SW_SHOWNA &&
         cmd != SW_SHOWNORMAL && cmd != SW_SHOWNOACTIVATE)
@@ -1731,7 +1699,8 @@ static thread_local bool g_inSWP   = false;
 
 BOOL WINAPI HookSetWindowPos(HWND hwnd, HWND hwndAfter,
                                int x, int y, int cx, int cy, UINT flags) {
-    if (!g_inSWP && (flags & SWP_SHOWWINDOW) && !IsWindowVisible(hwnd)) {
+    if (!g_inSWP && (flags & SWP_SHOWWINDOW) && !IsWindowVisible(hwnd)
+        && !g_unloading.load(std::memory_order_acquire)) {
         AnimInfo info;
         if (Classify(hwnd, info)) {
             {
@@ -1763,8 +1732,25 @@ BOOL WINAPI HookSetWindowPos(HWND hwnd, HWND hwndAfter,
 BOOL Wh_ModInit() {
     LoadSettings();
 
-    // Iniciar o worker de cleanup DComp antes de qualquer outra coisa.
-    // Nao depende de D3D/DComp -- apenas dorme e processa a fila de cleanup.
+    // Registar hooks ANTES de iniciar threads.
+    // Se qualquer Wh_SetFunctionHook falhar, retornamos FALSE e o Windhawk
+    // nao chama Wh_ModUninit. Se as threads ja estivessem a correr,
+    // ficariam orfas (sem join nem g_unloading).
+    if (!WindhawkUtils::SetFunctionHook(
+            ShowWindow, HookShowWindow, &g_origSW))
+        return FALSE;
+
+    if (!WindhawkUtils::SetFunctionHook(
+            SetWindowPos, HookSetWindowPos, &g_origSWP))
+        return FALSE;
+
+    if (!WindhawkUtils::SetFunctionHook(
+            CreateWindowExW, HookCreateWindowExW, &g_origCWEW))
+        return FALSE;
+
+    // Hooks registados com sucesso — agora iniciar threads de suporte.
+
+    // Worker de cleanup DComp: dorme e processa a fila de cleanup.
     g_cleanupThread = std::thread(CleanupWorkerProc);
 
     // Iniciar D3D11/DComp em background desde Wh_ModInit (mais cedo que
@@ -1837,24 +1823,6 @@ BOOL Wh_ModInit() {
             }
         }
     });
-
-    if (!Wh_SetFunctionHook(
-            reinterpret_cast<void*>(ShowWindow),
-            reinterpret_cast<void*>(HookShowWindow),
-            reinterpret_cast<void**>(&g_origSW)))
-        return FALSE;
-
-    if (!Wh_SetFunctionHook(
-            reinterpret_cast<void*>(SetWindowPos),
-            reinterpret_cast<void*>(HookSetWindowPos),
-            reinterpret_cast<void**>(&g_origSWP)))
-        return FALSE;
-
-    if (!Wh_SetFunctionHook(
-            reinterpret_cast<void*>(CreateWindowExW),
-            reinterpret_cast<void*>(HookCreateWindowExW),
-            reinterpret_cast<void**>(&g_origCWEW)))
-        return FALSE;
 
     // Hook de CShellBrowser::BrowseObject em explorerframe.dll.
     // Estrategia em 2 camadas (aplicada tanto em ModInit quanto AfterInit):
@@ -1985,40 +1953,30 @@ void Wh_ModAfterInit() {
     // com o Explorer em execucao. Novas janelas sao capturadas pelo hook de
     // CreateWindowExW.
     EnumWindows([](HWND hwnd, LPARAM) -> BOOL {
+        // Filtrar por processo: apenas janelas do nosso explorer.exe.
+        // Sem filtro, CabinetWClass de outras instancias de Explorer
+        // receberia tentativa de subclass cross-process.
+        DWORD pid = 0;
+        GetWindowThreadProcessId(hwnd, &pid);
+        if (pid != GetCurrentProcessId()) return TRUE;
+
         wchar_t cls[64];
         if (GetClassNameW(hwnd, cls, 64) && !wcscmp(cls, L"CabinetWClass"))
             TrySubclassExplorerWindow(hwnd);
         return TRUE;
     }, 0);
 
-    // explorerframe.dll pode nao estar carregada em Wh_ModInit mas ja
-    // estara aqui. Tentar simbolo de novo antes do vtable.
+    // Se HookSymbols falhou em ModInit (PDB ausente ou explorerframe.dll
+    // nao carregada), tentar vtable. HookSymbols nao e repetido aqui porque
+    // se falhou por PDB ausente, falhara de novo; se explorerframe.dll nao
+    // estava carregada, a vtable cobre-o igualmente.
+    // TryHookBrowseObjectViaVtable precisa de uma instancia real de
+    // CShellBrowser via IShellWindows COM -- durante o startup do Explorer
+    // nenhuma janela existe em Wh_ModInit, por isso deve ficar aqui.
+    // Wh_ApplyHookOperations e necessario porque hooks registados fora de
+    // Wh_ModInit nao sao aplicados automaticamente pelo Windhawk.
     if (!g_origBrowseObject) {
-        HMODULE hEF = GetModuleHandleW(L"explorerframe.dll");
-        // Camada 1: HookSymbols (cache + UI de download)
-        if (hEF && !g_origBrowseObject) {
-            WindhawkUtils::SYMBOL_HOOK explorerframe_dll_hooks[] = {
-                {
-                    // Nome nao-decorado extraido via Windhawk Symbol Helper.
-                    // Formato exato: __unaligned * (nao __ptr64 nem * simples).
-                    // Variantes adicionais para builds futuros.
-                    {
-                        LR"(public: virtual long __cdecl CShellBrowser::BrowseObject(struct _ITEMIDLIST_RELATIVE const __unaligned *,unsigned int))",
-                        LR"(public: virtual long __cdecl CShellBrowser::BrowseObject(struct _ITEMIDLIST_RELATIVE const * __ptr64,unsigned int))",
-                        LR"(public: virtual long __cdecl CShellBrowser::BrowseObject(struct _ITEMIDLIST const *,unsigned int))",
-                    },
-                    &g_origBrowseObject,
-                    HookBrowseObject,
-                    true,
-                },
-            };
-            WindhawkUtils::HookSymbols(hEF, explorerframe_dll_hooks, ARRAYSIZE(explorerframe_dll_hooks));
-            if (g_origBrowseObject)
-                Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols (AfterInit)");
-        }
-        // Camada 2: vtable (sem PDB, sempre funciona)
-        if (!g_origBrowseObject)
-            TryHookBrowseObjectViaVtable();
+        TryHookBrowseObjectViaVtable();
         if (g_origBrowseObject)
             Wh_ApplyHookOperations();
     }
