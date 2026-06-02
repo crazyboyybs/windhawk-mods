@@ -399,12 +399,11 @@ static constexpr ULONGLONG PENDING_EXPIRE_MS = 3000;
 // o mesmo root que ConsumePendingTransition usa. Mapeamento correto.
 // -----------------------------------------------
 
-// Mensagem customizada usada em Wh_ModBeforeUninit para solicitar que o
-// thread da janela remova o subclass com seguranca antes do DLL descarregar.
-static constexpr UINT WM_WH_REMOVE_SUBCLASS  = WM_USER + 0x5A;
-// Enviada para o thread da janela para tentar o hook via vtable
-// depois que a janela esta totalmente inicializada.
-static constexpr UINT WM_WH_TRY_VTABLE_HOOK  = WM_USER + 0x5B;
+// Mensagens customizadas registadas via RegisterWindowMessageW para evitar
+// colisao com WM_USER+N que CabinetWClass ou outros mods possam usar.
+// Valores no range 0xC000-0xFFFF, unicos por processo.
+static UINT WM_WH_REMOVE_SUBCLASS = 0;
+static UINT WM_WH_TRY_VTABLE_HOOK = 0;
 
 
 // Forward declarations -- definidos mais abaixo, usados no subclass proc
@@ -724,8 +723,8 @@ struct PendingCleanup {
 static std::vector<PendingCleanup> g_cleanupQueue;
 static std::mutex                  g_cleanupMtx;
 static std::condition_variable     g_cleanupCv;
-static std::thread                 g_cleanupThread;
-static std::thread                 g_initThread;     // D3D/DComp init em background
+static std::thread*                g_cleanupThread = nullptr;
+static std::thread*                g_initThread    = nullptr; // D3D/DComp init em background
 
 // Frame capturado no BrowseObject hook (conteudo antigo visivel e dimensionado).
 // Consumido em HookShowWindow para criar o overlay DComp.
@@ -1605,7 +1604,14 @@ static void DispatchAnimation(HWND hwnd, AnimInfo info) {
     {
         std::lock_guard<std::mutex> lk(g_animMtx);
         // Nao iniciar novas animacoes durante o descarregamento.
-        if (g_unloading.load(std::memory_order_relaxed)) return;
+        // Restaurar o estado da janela (HideViaRgn/BeginFade aplicados
+        // no hook antes de chamar esta funcao) para evitar que a janela
+        // fique invisivel ou semi-transparente permanentemente.
+        if (g_unloading.load(std::memory_order_relaxed)) {
+            RestoreRgn(hwnd);
+            if (info.useFade && !info.useDCompFade) EndFade(hwnd);
+            return;
+        }
         if (g_animating.count(hwnd)) return;
         g_animating.insert(hwnd);
     }
@@ -1732,6 +1738,13 @@ BOOL WINAPI HookSetWindowPos(HWND hwnd, HWND hwndAfter,
 BOOL Wh_ModInit() {
     LoadSettings();
 
+    // Registar mensagens customizadas no range 0xC000-0xFFFF para evitar
+    // colisao com WM_USER+N que CabinetWClass possa usar internamente.
+    WM_WH_REMOVE_SUBCLASS = RegisterWindowMessageW(
+        L"Windhawk_FileExplorerContentAnimation_RemoveSubclass");
+    WM_WH_TRY_VTABLE_HOOK = RegisterWindowMessageW(
+        L"Windhawk_FileExplorerContentAnimation_TryVtableHook");
+
     // Registar hooks ANTES de iniciar threads.
     // Se qualquer Wh_SetFunctionHook falhar, retornamos FALSE e o Windhawk
     // nao chama Wh_ModUninit. Se as threads ja estivessem a correr,
@@ -1751,14 +1764,16 @@ BOOL Wh_ModInit() {
     // Hooks registados com sucesso — agora iniciar threads de suporte.
 
     // Worker de cleanup DComp: dorme e processa a fila de cleanup.
-    g_cleanupThread = std::thread(CleanupWorkerProc);
+    // Heap-allocated (como g_initThread) para evitar std::terminate() em
+    // DLL_PROCESS_DETACH quando Explorer termina sem mod unload.
+    g_cleanupThread = new std::thread(CleanupWorkerProc);
 
-    // Iniciar D3D11/DComp em background desde Wh_ModInit (mais cedo que
-    // Wh_ModAfterInit) para maximizar a probabilidade de estar pronto
-    // antes da primeira navegacao do utilizador.
-    // Thread armazenado em g_initThread e joined em Wh_ModBeforeUninit
-    // para evitar UAF se o mod for descarregado durante a inicializacao.
-    g_initThread = std::thread([]() {
+    // Iniciar D3D11/DComp em background para maximizar a probabilidade de
+    // estar pronto antes da primeira navegacao do utilizador.
+    // Heap-allocated para evitar std::terminate() em DLL_PROCESS_DETACH
+    // (Explorer shutdown/restart -- ver std::thread destructor rules).
+    // Joined em Wh_ModBeforeUninit para evitar UAF durante mod unload.
+    g_initThread = new std::thread([]() {
         D3D_FEATURE_LEVEL level;
 
         // Tentar reutilizar um adapter DXGI ja carregado pelo Explorer para
@@ -1895,8 +1910,9 @@ static void TryHookBrowseObjectViaVtable() {
     static const GUID SID_STL =
         {0x4C96BE40, 0x915C, 0x11CF, {0x99, 0xD3, 0x00, 0xAA, 0x00, 0x4A, 0xE8, 0x37}};
 
-    // Wh_ModAfterInit roda no thread do Windhawk. Inicializar COM aqui
-    // para poder chamar CoCreateInstance com seguranca.
+    // Chamado de Wh_ModInit (main thread) ou WM_WH_TRY_VTABLE_HOOK
+    // (UI thread do Explorer). Inicializar COM aqui para poder chamar
+    // CoCreateInstance com seguranca em ambos os contextos.
     HRESULT hrCO = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     if (FAILED(hrCO) && hrCO != RPC_E_CHANGED_MODE) {
         Wh_Log(L"[VTABLE] CoInitializeEx falhou: 0x%08X", (unsigned)hrCO);
@@ -1984,8 +2000,10 @@ void Wh_ModBeforeUninit() {
     // Se o mod for descarregado durante a inicializacao (cold driver ~100-300ms),
     // sem este join o thread continuaria a escrever g_d3dDevice/g_dxgiDevice
     // enquanto Wh_ModUninit os liberta -> UAF.
-    if (g_initThread.joinable())
-        g_initThread.join();
+    if (g_initThread && g_initThread->joinable())
+        g_initThread->join();
+    delete g_initThread;
+    g_initThread = nullptr;
 
     // Remover subclasses antes do DLL descarregar para evitar crash com
     // proc invalido. Envia WM_WH_REMOVE_SUBCLASS para o thread da janela
@@ -2034,8 +2052,10 @@ void Wh_ModBeforeUninit() {
     // Join aqui garante que todos os refs de device AddRef'd sao libertados
     // antes de Wh_ModUninit libertar g_dcDevice.
     g_cleanupCv.notify_one();
-    if (g_cleanupThread.joinable())
-        g_cleanupThread.join();
+    if (g_cleanupThread && g_cleanupThread->joinable())
+        g_cleanupThread->join();
+    delete g_cleanupThread;
+    g_cleanupThread = nullptr;
 }
 
 void Wh_ModUninit() {
