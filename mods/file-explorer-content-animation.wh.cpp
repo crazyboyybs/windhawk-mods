@@ -1865,7 +1865,7 @@ BOOL Wh_ModInit() {
         HMODULE hEF = GetModuleHandleW(L"explorerframe.dll");
         if (hEF) {
             // Camada 1: HookSymbols com variantes de nome conhecidas
-            WindhawkUtils::SYMBOL_HOOK browseHooks[] = {
+            WindhawkUtils::SYMBOL_HOOK explorerframe_dll_hooks[] = {
                 {
                     // Nome nao-decorado extraido via Windhawk Symbol Helper.
                     // Formato exato: __unaligned * (nao __ptr64 nem * simples).
@@ -1880,7 +1880,7 @@ BOOL Wh_ModInit() {
                     true,
                 },
             };
-            WindhawkUtils::HookSymbols(hEF, browseHooks, ARRAYSIZE(browseHooks));
+            WindhawkUtils::HookSymbols(hEF, explorerframe_dll_hooks, ARRAYSIZE(explorerframe_dll_hooks));
 
             if (g_origBrowseObject) {
                 Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols");
@@ -1997,7 +1997,7 @@ void Wh_ModAfterInit() {
         HMODULE hEF = GetModuleHandleW(L"explorerframe.dll");
         // Camada 1: HookSymbols (cache + UI de download)
         if (hEF && !g_origBrowseObject) {
-            WindhawkUtils::SYMBOL_HOOK browseHooks[] = {
+            WindhawkUtils::SYMBOL_HOOK explorerframe_dll_hooks[] = {
                 {
                     // Nome nao-decorado extraido via Windhawk Symbol Helper.
                     // Formato exato: __unaligned * (nao __ptr64 nem * simples).
@@ -2012,7 +2012,7 @@ void Wh_ModAfterInit() {
                     true,
                 },
             };
-            WindhawkUtils::HookSymbols(hEF, browseHooks, ARRAYSIZE(browseHooks));
+            WindhawkUtils::HookSymbols(hEF, explorerframe_dll_hooks, ARRAYSIZE(explorerframe_dll_hooks));
             if (g_origBrowseObject)
                 Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols (AfterInit)");
         }
