@@ -1825,19 +1825,23 @@ BOOL Wh_ModInit() {
     });
 
     // Hook de CShellBrowser::BrowseObject em explorerframe.dll.
-    // Estrategia em 2 camadas (aplicada tanto em ModInit quanto AfterInit):
+    // Estrategia em 2 camadas:
     // 1. WindhawkUtils::HookSymbols  -- cache de PDB, mostra UI de download.
     //    Tenta varios nomes possiveis; o nome exato varia entre builds.
     // 2. TryHookBrowseObjectViaVtable -- sem PDB, sempre funciona.
+    //
+    // Ambas correm aqui em Wh_ModInit. Se explorerframe.dll nao estiver
+    // carregada ou nenhuma janela CabinetWClass existir (startup do Explorer),
+    // ambas falham silenciosamente e o hook e diferido para
+    // WM_WH_TRY_VTABLE_HOOK (postado por TrySubclassExplorerWindow quando
+    // a primeira CabinetWClass aparece via CreateWindowExW hook).
+    // Hooks registados em Wh_ModInit sao aplicados implicitamente pelo
+    // Windhawk antes de Wh_ModAfterInit (ver mod lifetime flowchart).
     {
         HMODULE hEF = GetModuleHandleW(L"explorerframe.dll");
         if (hEF) {
-            // Camada 1: HookSymbols com variantes de nome conhecidas
             WindhawkUtils::SYMBOL_HOOK explorerframe_dll_hooks[] = {
                 {
-                    // Nome nao-decorado extraido via Windhawk Symbol Helper.
-                    // Formato exato: __unaligned * (nao __ptr64 nem * simples).
-                    // Variantes adicionais para builds futuros.
                     {
                         LR"(public: virtual long __cdecl CShellBrowser::BrowseObject(struct _ITEMIDLIST_RELATIVE const __unaligned *,unsigned int))",
                         LR"(public: virtual long __cdecl CShellBrowser::BrowseObject(struct _ITEMIDLIST_RELATIVE const * __ptr64,unsigned int))",
@@ -1849,14 +1853,16 @@ BOOL Wh_ModInit() {
                 },
             };
             WindhawkUtils::HookSymbols(hEF, explorerframe_dll_hooks, ARRAYSIZE(explorerframe_dll_hooks));
-
-            if (g_origBrowseObject) {
+            if (g_origBrowseObject)
                 Wh_Log(L"[INIT] BrowseObject hooked OK via HookSymbols");
-            } else {
-                Wh_Log(L"[INIT] HookSymbols falhou -- vtable em AfterInit");
-            }
-        } else {
-            Wh_Log(L"[INIT] explorerframe.dll nao encontrado -- vtable em AfterInit");
+        }
+
+        if (!g_origBrowseObject) {
+            TryHookBrowseObjectViaVtable();
+            if (g_origBrowseObject)
+                Wh_Log(L"[INIT] BrowseObject hooked OK via vtable");
+            else
+                Wh_Log(L"[INIT] BrowseObject diferido para WM_WH_TRY_VTABLE_HOOK");
         }
     }
 
@@ -1871,8 +1877,9 @@ BOOL Wh_ModInit() {
 // vtable[11] = BrowseObject. Como todos os CShellBrowser compartilham
 // a mesma vtable, hookear um endereco cobre todas as instancias.
 //
-// Deve ser chamado apenas de Wh_ModAfterInit ou Wh_ModSettingsChanged,
-// pois Wh_ApplyHookOperations so e valido nesses contextos.
+// Chamado de:
+// - Wh_ModInit: hooks aplicados implicitamente pelo Windhawk.
+// - WM_WH_TRY_VTABLE_HOOK: Wh_ApplyHookOperations chamado explicitamente.
 // -----------------------------------------------
 
 static void TryHookBrowseObjectViaVtable() {
@@ -1965,21 +1972,6 @@ void Wh_ModAfterInit() {
             TrySubclassExplorerWindow(hwnd);
         return TRUE;
     }, 0);
-
-    // Se HookSymbols falhou em ModInit (PDB ausente ou explorerframe.dll
-    // nao carregada), tentar vtable. HookSymbols nao e repetido aqui porque
-    // se falhou por PDB ausente, falhara de novo; se explorerframe.dll nao
-    // estava carregada, a vtable cobre-o igualmente.
-    // TryHookBrowseObjectViaVtable precisa de uma instancia real de
-    // CShellBrowser via IShellWindows COM -- durante o startup do Explorer
-    // nenhuma janela existe em Wh_ModInit, por isso deve ficar aqui.
-    // Wh_ApplyHookOperations e necessario porque hooks registados fora de
-    // Wh_ModInit nao sao aplicados automaticamente pelo Windhawk.
-    if (!g_origBrowseObject) {
-        TryHookBrowseObjectViaVtable();
-        if (g_origBrowseObject)
-            Wh_ApplyHookOperations();
-    }
 }
 
 void Wh_ModBeforeUninit() {
