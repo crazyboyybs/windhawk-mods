@@ -154,53 +154,53 @@ escritorio). Las esquinas vuelven al frente del orden Z en cuanto esos elementos
 // ==WindhawkModSettings==
 /*
 - radius: 10
-  $name: Raio do Arredondamento
-  $name:en: Corner Radius
+  $name: Corner Radius
+  $name:pt: Raio do Arredondamento
   $name:es: Radio de las Esquinas
-  $description: "O raio (em pixels) para o arredondamento dos cantos. Maximo: 500."
-  $description:en: "Corner rounding radius in pixels. Maximum: 500."
+  $description: "Corner rounding radius in pixels. Maximum: 500."
+  $description:pt: "O raio (em pixels) para o arredondamento dos cantos. Maximo: 500."
   $description:es: "Radio de redondeo de esquinas en pixeles. Maximo: 500."
 - squircle: false
-  $name: Estilo Squircle
-  $name:en: Squircle Style
+  $name: Squircle Style
+  $name:pt: Estilo Squircle
   $name:es: Estilo Squircle
-  $description: "Se ativo, usa superelipse (squircle) no lugar do arco circular. Aparencia levemente mais suave no mesmo raio."
-  $description:en: "When enabled, uses a smooth superellipse (squircle) instead of a circular arc. Slightly softer appearance at the same radius."
+  $description: "When enabled, uses a smooth superellipse (squircle) instead of a circular arc. Slightly softer appearance at the same radius."
+  $description:pt: "Se ativo, usa superelipse (squircle) no lugar do arco circular. Aparencia levemente mais suave no mesmo raio."
   $description:es: "Cuando esta activo, usa una superelipse suave (squircle) en lugar del arco circular."
 - color: "#000000"
-  $name: Cor do Fundo
-  $name:en: Background Color
+  $name: Background Color
+  $name:pt: Cor do Fundo
   $name:es: Color de Fondo
-  $description: "Codigo Hex da cor dos cantos (#RRGGBB)."
-  $description:en: "Hex fill color of the corners (#RRGGBB)."
+  $description: "Hex fill color of the corners (#RRGGBB)."
+  $description:pt: "Codigo Hex da cor dos cantos (#RRGGBB)."
   $description:es: "Color Hex de relleno de las esquinas (#RRGGBB)."
 - border_thickness: 1
-  $name: Espessura da Linha Interna
-  $name:en: Inner Border Thickness
+  $name: Inner Border Thickness
+  $name:pt: Espessura da Linha Interna
   $name:es: Grosor del Borde Interior
-  $description: "Espessura (pixels) do contorno interno (0 para desativar)."
-  $description:en: "Inner border thickness in pixels (0 to disable)."
+  $description: "Inner border thickness in pixels (0 to disable)."
+  $description:pt: "Espessura (pixels) do contorno interno (0 para desativar)."
   $description:es: "Grosor del borde interior en pixeles (0 para desactivar)."
 - border_color: "#33FFFFFF"
-  $name: Cor da Linha Interna
-  $name:en: Inner Border Color
+  $name: Inner Border Color
+  $name:pt: Cor da Linha Interna
   $name:es: Color del Borde Interior
-  $description: "Codigo Hex da linha interna. Suporta alpha: #AARRGGBB."
-  $description:en: "Hex color of the inner border. Supports alpha: #AARRGGBB."
+  $description: "Hex color of the inner border. Supports alpha: #AARRGGBB."
+  $description:pt: "Codigo Hex da linha interna. Suporta alpha: #AARRGGBB."
   $description:es: "Color Hex del borde interior. Soporta alpha: #AARRGGBB."
 - dynamic_border: false
-  $name: Borda Interna Dinamica
-  $name:en: Dynamic Inner Border
+  $name: Dynamic Inner Border
+  $name:pt: Borda Interna Dinamica
   $name:es: Borde Interior Dinamico
-  $description: "Se ativo, oculta apenas a borda interna em tela cheia, mas mantém o arredondamento."
-  $description:en: "When enabled, hides only the inner border in fullscreen while keeping rounding."
+  $description: "When enabled, hides only the inner border in fullscreen while keeping rounding."
+  $description:pt: "Se ativo, oculta apenas a borda interna em tela cheia, mas mantém o arredondamento."
   $description:es: "Cuando esta activo, oculta solo el borde interior en pantalla completa."
 - disable_fullscreen: false
-  $name: Ocultar Mod em Tela Cheia
-  $name:en: Hide in Fullscreen
+  $name: Hide in Fullscreen
+  $name:pt: Ocultar Mod em Tela Cheia
   $name:es: Ocultar en Pantalla Completa
-  $description: "Oculta TUDO em jogos e aplicativos em tela cheia. O timer de polling so e ativo quando esta opcao estiver ligada."
-  $description:en: "Hides everything in fullscreen apps and games. The polling timer is only active when this option is enabled."
+  $description: "Hides everything in fullscreen apps and games. The polling timer is only active when this option is enabled."
+  $description:pt: "Oculta TUDO em jogos e aplicativos em tela cheia. O timer de polling so e ativo quando esta opcao estiver ligada."
   $description:es: "Oculta todo en aplicaciones y juegos a pantalla completa. El temporizador solo esta activo cuando esta opcion esta habilitada."
 */
 // ==/WindhawkModSettings==
