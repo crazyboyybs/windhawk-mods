@@ -19,6 +19,9 @@
 
 Applies smooth, anti-aliased rounded corners to all connected monitors using Direct2D.
 
+![Monitor Rounded Edges](https://raw.githubusercontent.com/crazyboyybs/assets/refs/heads/main/Monitor%20Rounded%20Edges%201.png)
+![Monitor Rounded Edges](https://raw.githubusercontent.com/crazyboyybs/assets/refs/heads/main/Monitor%20Rounded%20Edges%202.png)
+
 ## Features
 
 - Two corner styles -- Circle (classic arc) and Squircle (smooth superellipse).
@@ -57,6 +60,11 @@ center (k=0.70). This produces:
 The taskbar and Start menu may briefly appear above the corner overlays when they receive focus
 (e.g. opening Start, the Action Center, or right-clicking the desktop). The corners return to the
 top of the Z-order as soon as those elements lose focus.
+
+Fullscreen detection via `SHQueryUserNotificationState` is **system-wide**, not per-monitor: a
+fullscreen app on one monitor will affect the corners on all monitors. Additionally, `QUNS_BUSY`
+and `QUNS_PRESENTATION_MODE` can be set by non-game apps (e.g. Windows Presentation Mode or apps
+that request it), which may trigger hide/dynamic-border behavior unexpectedly.
 
 ---
 
@@ -103,6 +111,11 @@ A barra de tarefas e o menu Iniciar podem aparecer sobre as bordas arredondadas 
 em foco (ex: ao abrir o Iniciar, a Central de Acoes ou ao clicar com o botao direito na area de
 trabalho). As bordas voltam ao topo da ordem Z assim que esses elementos perdem o foco.
 
+A deteccao de tela cheia via `SHQueryUserNotificationState` e **global** (nao por monitor): um
+app em fullscreen em um monitor afeta as bordas de todos os monitores. Alem disso, `QUNS_BUSY` e
+`QUNS_PRESENTATION_MODE` podem ser ativados por apps que nao sao jogos (ex: Modo de Apresentacao
+do Windows), o que pode disparar o comportamento de ocultar/borda dinamica inesperadamente.
+
 ---
 
 # Bordes Redondeados del Monitor
@@ -148,6 +161,12 @@ interno del arco (k=0,70). Esto produce:
 La barra de tareas y el menu Inicio pueden aparecer sobre las esquinas redondeadas mientras
 reciben foco (ej: al abrir Inicio, el Centro de Notificaciones o al hacer clic derecho en el
 escritorio). Las esquinas vuelven al frente del orden Z en cuanto esos elementos pierden el foco.
+
+La deteccion de pantalla completa via `SHQueryUserNotificationState` es **global** (no por
+monitor): una app en pantalla completa en un monitor afecta las esquinas de todos los monitores.
+Ademas, `QUNS_BUSY` y `QUNS_PRESENTATION_MODE` pueden ser activados por apps que no son juegos
+(ej: Modo de Presentacion de Windows), lo que puede disparar el comportamiento de ocultar/borde
+dinamico de forma inesperada.
 */
 // ==/WindhawkModReadme==
 
@@ -195,13 +214,13 @@ escritorio). Las esquinas vuelven al frente del orden Z en cuanto esos elementos
   $description: "When enabled, hides only the inner border in fullscreen while keeping rounding."
   $description:pt: "Se ativo, oculta apenas a borda interna em tela cheia, mas mantém o arredondamento."
   $description:es: "Cuando esta activo, oculta solo el borde interior en pantalla completa."
-- disable_fullscreen: false
+- disable_fullscreen: true
   $name: Hide in Fullscreen
   $name:pt: Ocultar Mod em Tela Cheia
   $name:es: Ocultar en Pantalla Completa
-  $description: "Hides everything in fullscreen apps and games. The polling timer is only active when this option is enabled."
-  $description:pt: "Oculta TUDO em jogos e aplicativos em tela cheia. O timer de polling so e ativo quando esta opcao estiver ligada."
-  $description:es: "Oculta todo en aplicaciones y juegos a pantalla completa. El temporizador solo esta activo cuando esta opcion esta habilitada."
+  $description: "Hides everything in fullscreen apps and games. The polling timer is only active when this option is enabled. Note: always-on-top layered overlays may cause exclusive (flip-model) fullscreen games to flicker or drop out of exclusive mode; enable this option if that occurs."
+  $description:pt: "Oculta TUDO em jogos e aplicativos em tela cheia. O timer de polling so e ativo quando esta opcao estiver ligada. Aviso: overlays sempre no topo podem causar flickering em jogos fullscreen exclusivo (flip-model); ative esta opcao se isso ocorrer."
+  $description:es: "Oculta todo en aplicaciones y juegos a pantalla completa. El temporizador solo esta activo cuando esta opcion esta habilitada. Nota: los overlays siempre visibles pueden causar parpadeo en juegos fullscreen exclusivo (flip-model); activa esta opcion si ocurre."
 */
 // ==/WindhawkModSettings==
 
@@ -213,6 +232,7 @@ escritorio). Las esquinas vuelven al frente del orden Z en cuanto esos elementos
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <windhawk_utils.h>
 
 using namespace Microsoft::WRL;
 
@@ -323,15 +343,11 @@ static void LoadSettings() {
     g_cfg.radius   = (std::max)(1, (std::min)(500, Wh_GetIntSetting(L"radius")));
     g_cfg.squircle = Wh_GetIntSetting(L"squircle") != 0;
 
-    PCWSTR c1 = Wh_GetStringSetting(L"color");
-    g_cfg.bgColor = HexToColor(c1);
-    Wh_FreeStringSetting(c1);
+    g_cfg.bgColor = HexToColor(WindhawkUtils::StringSetting::make(L"color"));
 
     g_cfg.borderThickness = (float)(std::max)(0, Wh_GetIntSetting(L"border_thickness"));
 
-    PCWSTR c2 = Wh_GetStringSetting(L"border_color");
-    g_cfg.borderColor = HexToColor(c2);
-    Wh_FreeStringSetting(c2);
+    g_cfg.borderColor = HexToColor(WindhawkUtils::StringSetting::make(L"border_color"));
 
     g_cfg.dynamicBorder     = Wh_GetIntSetting(L"dynamic_border")    != 0;
     g_cfg.disableFullscreen = Wh_GetIntSetting(L"disable_fullscreen") != 0;
@@ -785,10 +801,13 @@ static DWORD WINAPI ModThread(LPVOID) {
     cc.lpszClassName = L"WindhawkCorner";
     RegisterClass(&cc);
 
+    // Top-level oculta (nao message-only): necessario para receber WM_DISPLAYCHANGE,
+    // que e enviado via broadcast e nao chega a janelas message-only (HWND_MESSAGE).
     g_hwndMain = CreateWindowEx(
-        0, L"WindhawkMaster", L"Master", 0,
+        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+        L"WindhawkMaster", L"Master", WS_POPUP,
         0, 0, 0, 0,
-        HWND_MESSAGE, NULL, wc.hInstance, NULL
+        NULL, NULL, wc.hInstance, NULL
     );
 
     if (g_hwndMain) {
@@ -840,8 +859,9 @@ static void WhTool_ModUninit() {
         g_hwndMain = NULL;
     }
     if (g_hThread) {
-        const DWORD res = WaitForSingleObject(g_hThread, 3000);
-        if (res == WAIT_TIMEOUT) TerminateThread(g_hThread, 0);
+        // TerminateThread removido: Wh_ModUninit chama ExitProcess(0) logo apos,
+        // portanto um timeout aqui e inofensivo -- o processo sera encerrado de qualquer forma.
+        WaitForSingleObject(g_hThread, 3000);
         CloseHandle(g_hThread);
         g_hThread = NULL;
     }
