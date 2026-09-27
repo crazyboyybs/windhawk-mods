@@ -12,6 +12,7 @@
 // @include         *
 // @exclude         dwm.exe
 // @exclude         mmc.exe
+// @exclude         E_YARNYNE.EXE
 // @exclude         msiexec.exe
 // @compilerOptions   -ldwmapi -lgdi32 -lcomctl32 -ld2d1 -ldwrite -luxtheme -ld3d11 -ldxgi -ldcomp -lwinmm -lmsimg32 -lshcore -lole32 -lshell32 -lshlwapi -luuid -lgdiplus
 // @license         GPL-3.0
